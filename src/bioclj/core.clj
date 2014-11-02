@@ -8,11 +8,11 @@
   ;; plus, clojure already has the com/permutate function
   (com/selections chars (count chars)))
 
-(defn frequent-kmer
+(defn kmer-frequency
   "returns a hash where keys are kmers and values are frequency.  accepts k and text."
   [k text]
-  (let [idxstop (- (count text) k)]
-    (persistent!
+  (persistent!
+    (let [idxstop (- (count text) k)]
       (reduce
         #(let [kmer (subs text %2 (+ %2 k))
                cnt (%1 kmer 0)]
@@ -20,3 +20,8 @@
         (transient {})
         (range 0 (inc idxstop))
         ))))
+
+(defn sorted-freq-kmer
+  [freqmap]
+  (into (sorted-map-by #(compare [(get freqmap %2) %2]
+                                 [(get freqmap %1) %1])) freqmap))
