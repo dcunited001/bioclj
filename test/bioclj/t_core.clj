@@ -32,3 +32,17 @@
              (second freqmap) => ["CCGCCTCTGTCCGT" 8]
              (first results) => ["TCGGAGTAAAGCCT" 8]
              (second results) => ["TAAAGCCTCTGTCC" 8])))
+
+(facts reverse-complement
+       (fact "returns the reverse complement of a strand of nucleotides, regardless of whether it's in upper/lower case."
+             (let [strand "TCGGAGTAAAGCCT"
+                   strand2 "TcgGAgtAaaGcCT"]
+               (core/reverse-complement strand) => "AGGCTTTACTCCGA"
+               (core/reverse-complement strand2) => "AGGCTTTACTCCGA")))
+
+(facts kmers-indices
+       (fact "returns a hashmap with vectors containing the indices substrings are found"
+             (let [freq (core/kmer-indices 2 "ABCDCD")]
+               (freq "DC") => [3]
+               (freq "CD") => [2 4]
+               (freq "AB") => [0])))
