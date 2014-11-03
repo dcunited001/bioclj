@@ -29,6 +29,11 @@
   [k text]
   (kmer-op #(conj (%1 %3 []) %2) k text))
 
+(defn kmer-clumps
+  [k L n text]
+  ;; iterate over vec values in kmer-indices and increment if distance between n kmer's is >= L
+  )
+
 (defn sorted-freq-kmer
   [freqmap]
   (into (sorted-map-by #(compare [(get freqmap %2) %2]
@@ -40,3 +45,25 @@
   "Returns the reverse complement.  Reverses the string and maps pairs on it."
   [s]
   (apply str (map pairs (reverse (vec s)))))
+
+(defn hamming-distance
+  "return the number of mismatches in two equally sized strings
+  if not equally sized, return -1"
+  [a b]
+  (if (= (count a) (count b))
+    (reduce
+      #(if (not= (get a %2) (get b %2)) (inc %1) %1)
+      0
+      (range 0 (count a)))
+    -1
+    ))
+
+(defn kmer-hammers
+  "get the kmer-indices of length k, then permutate the keys to get the combos of strings of length k,
+  for each string pair calc hamming distance and add it's match indexes to the each strings' total,
+  if that hamming-distance is less than d, returning a list of kmers of size k and each kmer's hamming match occurances
+
+  .. hmmm is this most efficient?
+  "
+  [k d text]
+  true)

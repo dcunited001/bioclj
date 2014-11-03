@@ -46,3 +46,14 @@
                (freq "DC") => [3]
                (freq "CD") => [2 4]
                (freq "AB") => [0])))
+
+(facts hamming-distance
+       (fact "returns the number of mismatches in two equally sized strings"
+             (let [s1 "ACTG"
+                   s2 "AATG"
+                   s3 "ACTGA"]
+               (core/hamming-distance s1 s1) => 0
+               (core/hamming-distance s1 s2) => 1
+               (core/hamming-distance s2 s3) => -1
+               )))
+
