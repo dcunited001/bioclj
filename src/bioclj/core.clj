@@ -114,18 +114,9 @@
    (persistent!
      (reduce
        (fn [ham-dom s1]
-         (let [empty-vec (vector)]
-           (assoc! ham-dom s1
-                   ;(filter #(<= (hamming-distance s1 %1 :dmax d) d) domain)
-                   (persistent!
-                     (reduce
-                       (fn [ham-set s2]
-                         (if (or (= s1 s2) (<= (hamming-distance s1 s2 :dmax d) d))
-                           (conj! ham-set s2)
-                           ham-set))
-                       (transient empty-vec)
-                       domain)
-                     ))))
+         (assoc! ham-dom s1
+                 (filter #(<= (hamming-distance s1 %1 :dmax d) d) domain))
+         ham-dom         )
        (transient {})
        domain)
      )))
