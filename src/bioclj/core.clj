@@ -1,5 +1,6 @@
 (ns bioclj.core
-  (:require [clojure.math.combinatorics :as com]))
+  (:require [clojure.math.combinatorics :as com]
+            [clojure.core.reducers :as r]))
 
 (defn combinate-domain
   "Permutes a string or array of chars and returns an array of strings representing the domain"
