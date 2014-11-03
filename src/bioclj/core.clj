@@ -8,6 +8,23 @@
   ;; plus, clojure already has the com/permutate function
   (com/selections chars (count chars)))
 
+;; convert permuted domain to strings, sort strings by dictionary order,
+;; use strings as keys to hash that can be looked up by integers
+;; this will allow us to get stats on hamming-distance near-miss strings that weren't in the text
+
+;; TODO: hmmm.. how to do this for a power set, including strings of multiple lengths?
+;; i guess that's not too hard. indexes are in the set of 0 to ∑(4^k) - 1, from k = 1 to K
+;; ... gee thanks Coursera Analytics Combonatorics class that I barely understand lulz
+
+(defn domain-index
+  "returns an index in a combinated domain, given a string.
+  combinated domain is an ordered map that can look up by keys or values."
+  [dom s])
+
+(defn domain-val
+  "returns an value, corresponding to the integer index of a combinated domain"
+  [dom i])
+
 (defn kmer-op
   "inspects text, running a fn with all substrings of length k
   f takes 3 params [hash index substring]"
@@ -63,7 +80,10 @@
   for each string pair calc hamming distance and add it's match indexes to the each strings' total,
   if that hamming-distance is less than d, returning a list of kmers of size k and each kmer's hamming match occurances
 
-  .. hmmm is this most efficient?
+  .. hmmm is this most efficient? also, the substring we're comparing against may not actually appear as a substring in the text...
   "
   [k d text]
   true)
+
+;; find the most frequent k-mers with up to d mismatches
+;; find the most frequent k-mers with up to d mismatches and includeing reverse complements...
