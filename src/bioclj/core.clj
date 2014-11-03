@@ -112,15 +112,16 @@
   "permute a domain and return matches with hamming distance less than d for strings of length k"
   ;([d k] (hammify-domain (map (partial apply str) (com/selections "ACGT" k)) d k))
   ([domain d]
-   (persistent!
-     (reduce
+     (r/fold
+       (fn combinef
+         ([] {})
+         ([x y] (merge x y)))
        (fn [ham-dom s1]
-         (assoc! ham-dom s1
-                 (filter #(<= (hamming-distance s1 %1 :dmax d) d) domain))
-         ham-dom         )
-       (transient {})
+         (assoc ham-dom s1 (into [] (r/filter #(<= (hamming-distance s1 %1 :dmax d) d) domain)))
+         (prn s1)
+         ham-dom)
        domain)
-     )))
+   ))
 
 (defn kmer-hammers
   "get the kmer-indices of length k, then com/selections the keys to get the combos of strings of length k,
