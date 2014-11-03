@@ -4,10 +4,10 @@
 
 (facts permute-domain
        (fact "Permuting strings works"
-             (core/combinate-domain "AC") => '((\A \A) (\A \C) (\C \A) (\C \C)))
+             (core/combinate-domain "AC" 2) => '((\A \A) (\A \C) (\C \A) (\C \C)))
 
        (fact "Permuting arrays works"
-             (core/combinate-domain [\A \B]) => '((\A \A) (\A \B) (\B \A) (\B \B))))
+             (core/combinate-domain [\A \B] 2) => '((\A \A) (\A \B) (\B \A) (\B \B))))
 
 (facts kmer-frequency
        (fact "counting kmers works for a 1-mers"
@@ -23,15 +23,16 @@
                (freq "AB") => 1)))
 
 (facts sorted-freq-kmer
-       (fact "sorting kmers maps works for short kmers maps"
+       (fact "sorting kmers ma
+       s works for short kmers maps"
              (let [dataset "GTACTCAAGGCTAATAGTCGCTAATAGTCGCTAATAGTCGCCTCTGTCCGCTAATAGTCACAGATTCACAGATTCGCTAATAGTCGTACTCAAGACAGATTCGCCTCTGTCCGTACTCAAGGCTAATAGTCACAGATTCGCTAATAGTCGTACTCAAGTCGGAGTAAAGCCTCTGTCCGCTAATAGTCACAGATTCACAGATTCTCGGAGTAAAGCCTCTGTCCGCTAATAGTCGTACTCAAGTCGGAGTAAATCGGAGTAAAGCCTCTGTCCTCGGAGTAAAGTACTCAAGACAGATTCGCCTCTGTCCGCCTCTGTCCGTACTCAAGGCCTCTGTCCGCCTCTGTCCTCGGAGTAAAGTACTCAAGTCGGAGTAAAACAGATTCGTACTCAAGACAGATTCTCGGAGTAAAGCCTCTGTCCACAGATTCACAGATTCGTACTCAAGACAGATTCGCCTCTGTCCGCCTCTGTCCACAGATTCGCTAATAGTCTCGGAGTAAAGCCTCTGTCCGCTAATAGTCTCGGAGTAAAGCCTCTGTCCGCTAATAGTCACAGATTCGTACTCAAGGTACTCAAGACAGATTCGTACTCAAGTCGGAGTAAAGCCTCTGTCCTCGGAGTAAAGTACTCAAGTCGGAGTAAAGCTAATAGTCTCGGAGTAAAGCCTCTGTCCGCTAATAGTCGTACTCAAGACAGATTCTCGGAGTAAAGTACTCAAGTCGGAGTAAAGTACTCAAGGCCTCTGTCCTCGGAGTAAATCGGAGTAAAGTACTCAAGGCCTCTGTCCGTACTCAAGGCTAATAGTCGCCTCTGTCCACAGATTCTCGGAGTAAAGCTAATAGTCGTACTCAAGACAGATTCGCTAATAGTCGCCTCTGTCCGCCTCTGTCC"
                    freqmap (core/sorted-freq-kmer {"CCGCCTCTGTCCGT" 8, "GAGTAAAACAGATT" 1, "TAAAGTACTCAAGT" 3, "ATAGTCACAGATTC" 4, "CACAGATTCGTACT" 2, "TAAAGCCTCTGTCC" 8})
                    results (core/sorted-freq-kmer (core/kmer-frequency 14 dataset))]
 
-             (first freqmap) => ["TAAAGCCTCTGTCC" 8]
-             (second freqmap) => ["CCGCCTCTGTCCGT" 8]
-             (first results) => ["TCGGAGTAAAGCCT" 8]
-             (second results) => ["TAAAGCCTCTGTCC" 8])))
+               (first freqmap) => ["TAAAGCCTCTGTCC" 8]
+               (second freqmap) => ["CCGCCTCTGTCCGT" 8]
+               (first results) => ["TCGGAGTAAAGCCT" 8]
+               (second results) => ["TAAAGCCTCTGTCC" 8])))
 
 (facts kmer-indices
        (fact "returns a hashmap with vectors containing the indices substrings are found"
@@ -59,6 +60,9 @@
                    s3 "ACTGA"]
                (core/hamming-distance s1 s1) => 0
                (core/hamming-distance s1 s2) => 1
-               (core/hamming-distance s2 s3) => -1
+               (core/hamming-distance s1 s1 :d 0) => 0
+               (core/hamming-distance s1 s2 :d 0) => 1
+               (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1
                )))
+
 

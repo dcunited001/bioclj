@@ -3,10 +3,10 @@
 
 (defn combinate-domain
   "Permutes a string or array of chars and returns an array of strings representing the domain"
-  [chars]
+  [chars n]
   ;; the algorithm this way is very inefficient.  hash is always most efficient.
   ;; plus, clojure already has the com/permutate function
-  (com/selections chars (count chars)))
+  (com/selections chars n))
 
 ;; convert permuted domain to strings, sort strings by dictionary order,
 ;; use strings as keys to hash that can be looked up by integers
@@ -54,20 +54,22 @@
    (persistent!
      (reduce
        #(let [key (first %2)
-              ind (second %2)                               ;; ind is the set of matching indices to inspect
-              clumped (reduce-kv
-                        (fn [arr i val]
-                          (let [clump-end (get ind (+ i (dec n)) 9999999)]
-                            (prn (str clump-end " " val " " L " " ind " " i))
-                            (if (<= (- clump-end val) L)
-                              ;; ugh there's got to be a better way to do this!
-                              (do (if (not (contains? arr val)) (conj arr val))
-                                  (conj arr clump-end))
-                              arr)
-                            )
-                          )
-                        []
-                        ind)]
+              ;; ind is the set of matching indices to inspect
+              ind (second %2)
+              clumped (vec (reduce-kv
+                             (fn [arr i val]
+                               ;;TODO: fix 9999999! lol
+                               (let [clump-end (get ind (+ i (dec n)) 9999999)]
+                                 (if (<= (- clump-end val) L)
+                                   ;; ugh there's still got to be a better way to do this!
+                                   (apply (partial conj arr)
+                                          (subvec ind (.indexOf ind val)
+                                                  (inc (.indexOf ind clump-end))))
+                                   arr)
+                                 )
+                               )
+                             (sorted-set)
+                             ind))]
          (prn clumped)
          (if (not-empty clumped) (assoc! %1 key clumped) %1))
        (transient {})
@@ -81,34 +83,70 @@
   (into (sorted-map-by #(compare [(get freqmap %2) %2]
                                  [(get freqmap %1) %1])) freqmap))
 
-(def pairs {\A \T \T \A \C \G \G \C \a \T \t \A \c \G \g \C})
+(def base-pairs {\A \T \T \A \C \G \G \C \a \T \t \A \c \G \g \C})
 
 (defn reverse-complement
   "Returns the reverse complement.  Reverses the string and maps pairs on it."
   [s]
-  (apply str (map pairs (reverse (vec s)))))
+  (apply str (map base-pairs (reverse (vec s)))))
 
 (defn hamming-distance
-  "return the number of mismatches in two equally sized strings
-  if not equally sized, return -1"
-  [a b]
-  (if (= (count a) (count b))
-    (reduce
-      #(if (not= (get a %2) (get b %2)) (inc %1) %1)
-      0
-      (range 0 (count a)))
-    -1
-    ))
+  "return the number of mismatches in two equally sized strings, returning distance d
+  use dmax to ensure that hamming distance terminates early, dmax defaults to (count a)
+  if dmax terminates early (inc dmax) is returned, this is assuming that result will be filtered out anyways"
+  ;; user must ensure strings are equal sized before calling
+  ([a b & {:keys [d dmax] :or {d 0 dmax (count a)}}]
+   (if (not (string? a))
+     (if (< d dmax)
+       (if (not-empty a)
+         (recur (rest a) (rest b)
+                {:d    (+ d (or (and (= (take 1 a) (take 1 b)) 0) 1))
+                 :dmax dmax})
+         d)
+       (inc d))                                             ;; returns dmax + 1, when dmax is exceeded
+     (hamming-distance (seq a) (seq b) :d d :dmax dmax)
+     )))
+
+(defn hammify-domain
+  "permute a domain and return matches with hamming distance less than d for strings of length k"
+  ;([d k] (hammify-domain (map (partial apply str) (com/selections "ACGT" k)) d k))
+  ([domain d]
+   (persistent!
+     (reduce
+       (fn [ham-dom s1]
+         (let [empty-vec (vector)]
+           (assoc! ham-dom s1
+                   ;(filter #(<= (hamming-distance s1 %1 :dmax d) d) domain)
+                   (persistent!
+                     (reduce
+                       (fn [ham-set s2]
+                         (if (or (= s1 s2) (<= (hamming-distance s1 s2 :dmax d) d))
+                           (conj! ham-set s2)
+                           ham-set))
+                       (transient empty-vec)
+                       domain)
+                     ))))
+       (transient {})
+       domain)
+     )))
 
 (defn kmer-hammers
-  "get the kmer-indices of length k, then permutate the keys to get the combos of strings of length k,
+  "get the kmer-indices of length k, then com/selections the keys to get the combos of strings of length k,
   for each string pair calc hamming distance and add it's match indexes to the each strings' total,
   if that hamming-distance is less than d, returning a list of kmers of size k and each kmer's hamming match occurances
 
-  .. hmmm is this most efficient? also, the substring we're comparing against may not actually appear as a substring in the text...
-  "
+  .. hmmm is this most efficient? also, the substring we're comparing against may not actually appear as a substring in the text..."
   [k d text]
-  true)
+  (let [ki (kmer-indices k text)]
+
+    ))
+
+(defn kmer-hammer
+  "kmer-hammers, but for one string, because i'm short on time, 15 mins to go"
+  ([kmer d text]
+   (let [kmers (kmer-indices (count kmer) text)]
+     (filter #(<= (hamming-distance kmer (first %1)) d) kmers))))
 
 ;; find the most frequent k-mers with up to d mismatches
 ;; find the most frequent k-mers with up to d mismatches and includeing reverse complements...
+
