@@ -47,8 +47,33 @@
   (kmer-op #(conj (%1 %3 []) %2) k text))
 
 (defn kmer-clumps
-  [k L n text]
-  ;; iterate over vec values in kmer-indices and increment if distance between n kmer's is >= L
+  "filters the kmer-indices down by number of occurrances, then passes to kmer-clumps [kindex L n],
+  which further filters the kmer-indices passed in and removes indices that not occuring n times within a window of L distance"
+  ([L n k text] (kmer-clumps L n (filter #(>= (count (second %)) n) (kmer-indices k text))))
+  ([L n kindex]
+   (persistent!
+     (reduce
+       #(let [key (first %2)
+              ind (second %2)                               ;; ind is the set of matching indices to inspect
+              clumped (reduce-kv
+                        (fn [arr i val]
+                          (let [clump-end (get ind (+ i (dec n)) 9999999)]
+                            (prn (str clump-end " " val " " L " " ind " " i))
+                            (if (<= (- clump-end val) L)
+                              ;; ugh there's got to be a better way to do this!
+                              (do (if (not (contains? arr val)) (conj arr val))
+                                  (conj arr clump-end))
+                              arr)
+                            )
+                          )
+                        []
+                        ind)]
+         (prn clumped)
+         (if (not-empty clumped) (assoc! %1 key clumped) %1))
+       (transient {})
+       kindex)
+     )
+   )
   )
 
 (defn sorted-freq-kmer
