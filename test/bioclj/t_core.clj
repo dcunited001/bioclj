@@ -64,5 +64,3 @@
                (core/hamming-distance s1 s2 :d 0) => 1
                (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1
                )))
-
-

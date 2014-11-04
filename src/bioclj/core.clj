@@ -1,6 +1,9 @@
 (ns bioclj.core
+  (:use [criterium.core])
   (:require [clojure.math.combinatorics :as com]
             [clojure.core.reducers :as r]))
+
+(defn now [] (java.util.Date.))
 
 (defn combinate-domain
   "Permutes a string or array of chars and returns an array of strings representing the domain"
@@ -38,6 +41,7 @@
         (transient {})
         (range 0 (inc idxstop))))))
 
+
 (defn kmer-frequency
   "returns a hash where keys are kmers and values are frequency.  accepts k and text."
   [k text]
@@ -46,6 +50,13 @@
 (defn kmer-indices
   [k text]
   (kmer-op #(conj (%1 %3 []) %2) k text))
+
+(defn kmer-hamming-count
+  [kmer d text]
+  (kmer-op #(if (<= (hamming-distance kmer %3 :dmax (inc d)) d)
+             (inc (%1 %3 0)) (%1 %3 0))
+           (count kmer)
+           text))
 
 (defn kmer-clumps
   "filters the kmer-indices down by number of occurrances, then passes to kmer-clumps [kindex L n],
@@ -71,7 +82,6 @@
                                )
                              (sorted-set)
                              ind))]
-         (prn clumped)
          (if (not-empty clumped) (assoc! %1 key clumped) %1))
        (transient {})
        kindex)
@@ -130,9 +140,16 @@
 
   .. hmmm is this most efficient? also, the substring we're comparing against may not actually appear as a substring in the text..."
   [k d text]
-  (let [ki (kmer-indices k text)]
-
-    ))
+  (let [ki (kmer-indices k text)
+        kmers (keys ki)
+        ham-dom (hammify-domain kmers d)]
+    (persistent!
+      (reduce
+        (fn [hammers k]
+          (assoc! hammers k (mapcat ki (ham-dom k))))
+        (transient {})
+        kmers)
+      )))
 
 (defn kmer-hammer
   "kmer-hammers, but for one string, because i'm short on time, 15 mins to go"
@@ -140,6 +157,15 @@
    (let [kmers (kmer-indices (count kmer) text)]
      (filter #(<= (hamming-distance kmer (first %1)) d) kmers))))
 
+
+(defn kmer-frequency-with-mismatches
+  "returns a hash where keys are kmers and values are the frequency of that word and it's close mismatches with hamming distance < d"
+  [k d text]
+  (sorted-freq-kmer
+    (reduce #(assoc %1 (first %2) (count (second %2)))
+            {}
+            (kmer-hammers k d text))
+    ))
+
 ;; find the most frequent k-mers with up to d mismatches
 ;; find the most frequent k-mers with up to d mismatches and includeing reverse complements...
-

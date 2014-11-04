@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/math.combinatorics "0.0.8"]
-                 [clj-biosequence "0.1.4-SNAPSHOT"]]
+                 [clj-biosequence "0.1.4-SNAPSHOT"]
+                 [criterium "0.4.3"]]
   :profiles {:dev {:dependencies [[midje "1.6.3"]]}}
   :main bioclj.core)
