@@ -29,6 +29,32 @@
   "returns an value, corresponding to the integer index of a combinated domain"
   [dom i])
 
+(def base-pairs {\A \T \T \A \C \G \G \C \a \T \t \A \c \G \g \C})
+
+(defn reverse-complement
+  "Returns the reverse complement.  Reverses the string and maps pairs on it."
+  [s]
+  (apply str (map base-pairs (reverse (vec s)))))
+
+(defn hamming-distance
+  "return the number of mismatches in two equally sized strings, returning distance d
+  use dmax to ensure that hamming distance terminates early, dmax defaults to (count a)
+  if dmax terminates early (inc dmax) is returned, this is assuming that result will be filtered out anyways"
+  ;; user must ensure strings are equal sized before calling
+  ([a b & {:keys [d dmax] :or {d 0 dmax (count a)}}]
+   (if (not (string? a))
+     ;; TODO: fix dmax so you don't have to call with :dmax (inc d)
+     (if (< d dmax)
+       (if (not-empty a)
+         (recur (rest a) (rest b)
+                {:d    (+ d (or (and (= (take 1 a) (take 1 b)) 0) 1))
+                 :dmax dmax})
+         d)
+       (inc d))                                             ;; returns dmax + 1, when dmax is exceeded
+     (hamming-distance (seq a) (seq b) :d d :dmax dmax)
+     )))
+
+
 (defn kmer-op
   "inspects text, running a fn with all substrings of length k
   f takes 3 params [hash index substring]"
@@ -94,44 +120,46 @@
   (into (sorted-map-by #(compare [(get freqmap %2) %2]
                                  [(get freqmap %1) %1])) freqmap))
 
-(def base-pairs {\A \T \T \A \C \G \G \C \a \T \t \A \c \G \g \C})
-
-(defn reverse-complement
-  "Returns the reverse complement.  Reverses the string and maps pairs on it."
-  [s]
-  (apply str (map base-pairs (reverse (vec s)))))
-
-(defn hamming-distance
-  "return the number of mismatches in two equally sized strings, returning distance d
-  use dmax to ensure that hamming distance terminates early, dmax defaults to (count a)
-  if dmax terminates early (inc dmax) is returned, this is assuming that result will be filtered out anyways"
-  ;; user must ensure strings are equal sized before calling
-  ([a b & {:keys [d dmax] :or {d 0 dmax (count a)}}]
-   (if (not (string? a))
-     (if (< d dmax)
-       (if (not-empty a)
-         (recur (rest a) (rest b)
-                {:d    (+ d (or (and (= (take 1 a) (take 1 b)) 0) 1))
-                 :dmax dmax})
-         d)
-       (inc d))                                             ;; returns dmax + 1, when dmax is exceeded
-     (hamming-distance (seq a) (seq b) :d d :dmax dmax)
-     )))
-
 (defn hammify-domain
   "permute a domain and return matches with hamming distance less than d for strings of length k"
   ;([d k] (hammify-domain (map (partial apply str) (com/selections "ACGT" k)) d k))
   ([domain d]
-     (r/fold
-       (fn combinef
-         ([] {})
-         ([x y] (merge x y)))
+   (prn (now))
+   (persistent!
+     (reduce
        (fn [ham-dom s1]
-         (assoc ham-dom s1 (into [] (r/filter #(<= (hamming-distance s1 %1 :dmax d) d) domain)))
-         (prn s1)
-         ham-dom)
+         (assoc! ham-dom s1 (filter #(<= (hamming-distance s1 %1 :dmax (inc d)) d) domain)))
+       (transient {})
        domain)
-   ))
+     )))
+
+(defn hammify-domain-parallel
+  [domain d]
+  (r/fold
+    (fn combinef
+      ([] {})
+      ([x y] (merge x y)))
+    (fn [ham-dom s1]
+      (assoc ham-dom s1 (into [] (r/filter #(<= (hamming-distance s1 %1 :dmax (inc d)) d) domain)))
+      ham-dom)
+    domain))
+
+(defn hammify-domain-nonoccuring
+  "takes the strings that compose the domain of a kmer-indices result (the keys)
+  and contrasts them with the combinated domain of all possible kmers of length k, (subtracts them)
+  then filters the remaining kmers in k by their hamming distances.
+
+  this is such an inefficient operation that i can't believe it's required for our assignment
+  and yet, i can't think of how you can identify kmers that are missing in your set,
+  without starting with a complete set of all of them
+
+  nevermind. by taking the domain of the result of kmer-hammers (DKH), i can compare that against the combinated-domain (CD),
+  but that's still massive: |DKH| x |CD|. might be better to take DKH and generate all the possible strings from it, since |CD|=65K for k=8.
+
+  by using memoized hamming-distances, i can further reduce time. of course, for k=8, that's 4GB of RAM, just to store the keys"
+  []
+  ;(into [] (r/filter #(<= (hamming-distance ))) (combinate-domain "ACGT" k)
+  )
 
 (defn kmer-hammers
   "get the kmer-indices of length k, then com/selections the keys to get the combos of strings of length k,
