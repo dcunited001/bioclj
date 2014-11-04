@@ -81,6 +81,12 @@
   ;; i actually think this will be faster, when using the appropriate data structures
   )
 
+(defn sorted-freq-kmer
+  [freqmap]
+  (into (sorted-map-by #(compare [(get freqmap %2) %2]
+                                 [(get freqmap %1) %1])) freqmap))
+
+;; TODO: refactor to macros?
 (defn kmer-op
   "inspects text, running a fn with all substrings of length k
   f takes 3 params [hash index substring]"
@@ -93,6 +99,44 @@
         (transient {})
         (range 0 (inc idxstop))))))
 
+(defn kmer-op-with-near-misses
+  [f foldmergef k d text]
+  (let [idxstop (- (count text) k)]
+    (r/fold
+      (fn combine-indexes
+        ([] {})
+        ([x y] (merge-with foldmergef x y)))
+      (fn fold-substrings [h i]
+        (let [kmer (subs text i (+ i k))]
+          (f h i kmer)))
+      (range 0 (inc idxstop))
+      )
+    )
+  )
+
+(defn kmer-frequency-with-near-misses
+  "returns a hash where keys are kmers and values are the frequency of that word and it's close mismatches with hamming distance < d"
+  [k d text]
+  (sorted-freq-kmer
+    (kmer-op-with-near-misses
+      (fn [h i kmer]
+        (merge-with + h
+                    (r/fold
+                      (fn combinef ([] {}) ([x y] (merge x y)))
+                      (fn fold-neighbor-indices [nh n] (assoc nh n 1))
+                      (format-char-list (neighborhood-recur kmer d)))))
+      + k d text)))
+
+(defn kmer-indices-with-near-misses
+  [k d text]
+  (kmer-op-with-near-misses
+    (fn [h i kmer]
+      (merge-with concat h
+                  (r/fold
+                    (fn combinef ([] {}) ([x y] (merge x y)))
+                    (fn fold-neighbor-indices [nh n] (assoc nh n (list i)))
+                    (format-char-list (neighborhood-recur kmer d)))))
+    concat k d text))
 
 (defn kmer-frequency
   "returns a hash where keys are kmers and values are frequency.  accepts k and text."
@@ -141,11 +185,6 @@
    )
   )
 
-(defn sorted-freq-kmer
-  [freqmap]
-  (into (sorted-map-by #(compare [(get freqmap %2) %2]
-                                 [(get freqmap %1) %1])) freqmap))
-
 (defn hammify-domain
   "permute a domain and return matches with hamming distance less than d for strings of length k"
   ;([d k] (hammify-domain (map (partial apply str) (com/selections "ACGT" k)) d k))
@@ -193,14 +232,16 @@
   if that hamming-distance is less than d, returning a list of kmers of size k and each kmer's hamming match occurances
 
   .. hmmm is this most efficient? also, the substring we're comparing against may not actually appear as a substring in the text..."
+  ;; ugh .. rewrite to inspect each substring, then expand that substring into its neighborhood, then add to the list of indexes
   [k d text]
   (let [ki (kmer-indices k text)
         kmers (keys ki)
-        ham-dom (hammify-domain kmers d)]
+        ;kmers (format-char-list (r/mapcat #(neighborhood-recur %1 d) (keys ki))) ;; prohibitively expensive
+        ham-dom (hammify-domain-parallel kmers d)]
     (persistent!
       (reduce
         (fn [hammers k]
-          (assoc! hammers k (mapcat ki (ham-dom k))))
+          (assoc! hammers k (r/mapcat ki (ham-dom k))))
         (transient {})
         kmers)
       )))
@@ -211,7 +252,6 @@
    (let [kmers (kmer-indices (count kmer) text)]
      (filter #(<= (hamming-distance kmer (first %1)) d) kmers))))
 
-
 (defn kmer-frequency-with-mismatches
   "returns a hash where keys are kmers and values are the frequency of that word and it's close mismatches with hamming distance < d"
   [k d text]
@@ -221,5 +261,5 @@
             (kmer-hammers k d text))
     ))
 
-;; find the most frequent k-mers with up to d mismatches
-;; find the most frequent k-mers with up to d mismatches and includeing reverse complements...
+;; TODO: find the most frequent k-mers with up to d mismatches and includeing reverse complements...
+;; TODO: rewrite everything to use r/fold that doesn't mutate state
