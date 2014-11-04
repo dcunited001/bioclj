@@ -31,6 +31,8 @@
 
 (def base-pairs {\A \T \T \A \C \G \G \C \a \T \t \A \c \G \g \C})
 
+(def nucleotides '(\A \G \T \C))
+
 (defn reverse-complement
   "Returns the reverse complement.  Reverses the string and maps pairs on it."
   [s]
@@ -42,7 +44,7 @@
   if dmax terminates early (inc dmax) is returned, this is assuming that result will be filtered out anyways"
   ;; user must ensure strings are equal sized before calling
   ([a b & {:keys [d dmax] :or {d 0 dmax (count a)}}]
-   (if (not (string? a))
+   (if (or (not (string? a)) (not (string? b)))
      ;; TODO: fix dmax so you don't have to call with :dmax (inc d)
      (if (< d dmax)
        (if (not-empty a)
@@ -54,6 +56,30 @@
      (hamming-distance (seq a) (seq b) :d d :dmax dmax)
      )))
 
+(defn format-char-list [char-list]
+  (map (partial apply str) char-list))
+
+(defn neighborhood-recur
+  [s d]
+  ;; seems to be no way to use recur here, not that it would make much of a difference in this alg
+  (if (> d 0)
+    (if (> (count s) 1)
+      (let [sub (rest s)
+            subhood (neighborhood-recur sub d)]
+        (reduce
+          (fn [thishood t]
+            (if (<= (hamming-distance sub t :dmax (inc d)) d)
+              (apply conj thishood (map #(conj t %1) nucleotides))
+              (conj thishood (conj t (first sub)))))
+          '()
+          subhood))
+      (map list nucleotides))
+    s))
+
+(defn neighborhood-iter
+  [s d]
+  ;; i actually think this will be faster, when using the appropriate data structures
+  )
 
 (defn kmer-op
   "inspects text, running a fn with all substrings of length k
