@@ -65,18 +65,36 @@
                (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1
                )))
 
+(facts neighborhood-recur)
+;; why the $#@! is this wrong??!/!/!/!?? lulz
+
 (facts transcribe-rna
        (fact "transcribes RNA into a peptide chain"
              (let [rna "AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA"
                    peptide "MAMAPRTEINSTRING*"]
                (core/transcribe-rna rna) => peptide))
-       (fact "also works with DNA")
+       (fact "also works with DNA"
+             (let [dna "ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA"
+                   peptide "MAMAPRTEINSTRING*"]
+               (core/transcribe-rna dna) => peptide))
        (fact "probably blows up if the RNA chain isn't a multiple of 3"))
 
 (facts rna-encodes-peptide?
-       (fact "if the RNA strand encodes the given pepide")
-
+       (fact "if the RNA strand encodes the given pepide"
+             (let [rna1 "ATGGCC"
+                   rna2 "ATGGAT"
+                   peptide "MA"]
+               (core/rna-encodes-peptide? rna1 peptide) => true
+               (core/rna-encodes-peptide? rna2 peptide) => false))
        (fact "stops as early as possible"))
 
 (facts find-encoded-peptides
-       (fact "finds encoded peptides in both the forward and reverse compliments of an RNA strand"))
+       (fact "finds encoded peptides in both the forward and reverse compliments of an RNA strand"
+             (let [rna "ATGGCCATGGCCCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA"
+                   peptide "MA"
+                   strands ["ATGGCC" "GGCCAT" "ATGGCC"]]
+               (core/find-encoded-peptides rna peptide) => strands)
+             ))
+
+
+

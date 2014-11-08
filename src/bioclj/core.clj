@@ -281,15 +281,20 @@
     aminos
     (recur (nthrest rna 3) { :aminos (str aminos (bio.alpha/codon->aa (take 3 rna) codon-table)) })))
 
-(defn rna-encodes-peptide?
-  [rna peptide &
-   {:keys [aminos original-rna]
-    :or { aminos "" original-rna rna } }]
-  (if (empty? rna)
-    original-rna
+(defn to-char-array [abc] (if (string? abc)
+                            (map char (.getBytes abc))
+                            abc))
 
-    )
-  )
+;; convert to char arrays only
+(defmulti rna-encodes-peptide? (fn [rna peptide] (map string? [rna peptide])))
+(defmethod rna-encodes-peptide? :default [rna peptide]
+  (rna-encodes-peptide? (to-char-array rna) (to-char-array peptide)))
+(defmethod rna-encodes-peptide? [false false] [rna peptide]
+  [rna peptide]
+  (or (empty? rna)
+      (and (= (bio.alpha/codon->aa (take 3 rna) codon-table)
+              (first peptide))
+           (recur (nthrest rna 3) (nthrest peptide 1)))))
 
 (defn find-encoded-peptides
   [dna peptide &
