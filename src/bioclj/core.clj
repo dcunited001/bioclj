@@ -276,10 +276,10 @@
 (defn transcribe-rna
   [rna &
    {:keys [aminos]
-    :or { aminos "" } }]
+    :or   {aminos ""}}]
   (if (empty? rna)
     aminos
-    (recur (nthrest rna 3) { :aminos (str aminos (bio.alpha/codon->aa (take 3 rna) codon-table)) })))
+    (recur (nthrest rna 3) {:aminos (str aminos (bio.alpha/codon->aa (take 3 rna) codon-table))})))
 
 (defn to-char-array [abc] (if (string? abc)
                             (map char (.getBytes abc))
@@ -296,17 +296,21 @@
               (first peptide))
            (recur (nthrest rna 3) (nthrest peptide 1)))))
 
+;; TODO: add behavior for stop codon
 (defn find-encoded-peptides
-  [dna peptide &
-   {:keys [find-rev]
-    :or { find-rev true }}]
+  [rna peptide &
+   {:keys [find-rev reverse]
+    :or   {find-rev true reverse false}}]
   (if find-rev
-    (concat (find-encoded-peptides dna peptide :find-rev false)
-            (find-encoded-peptides (reverse-complement dna) peptide :find-rev false))
-    (kmer-op
-      #()
-      (* 3 (count peptide))
-      dna
-      )
-    ))
+    (into {} (filter
+               (comp not empty? val)
+                     (merge-with
+                       concat (find-encoded-peptides rna peptide :find-rev false)
+                       (find-encoded-peptides (reverse-complement rna) peptide :find-rev false :reverse true))))
+    (kmer-op #(if (rna-encodes-peptide? %3 peptide)
+               ;; report back negative indices for the reverse complement
+               (conj (%1 %3 []) (if reverse (* -1 %2) %2))
+               (%1 %3 []))
+             (* 3 (count peptide))
+             rna)))
 

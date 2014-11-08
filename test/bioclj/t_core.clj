@@ -82,10 +82,14 @@
 (facts rna-encodes-peptide?
        (fact "if the RNA strand encodes the given pepide"
              (let [rna1 "ATGGCC"
-                   rna2 "ATGGAT"
+                   rna2 "ATGGCC"
+                   rna3 "ATGGAT"
+                   rna4 "GATATG"
                    peptide "MA"]
                (core/rna-encodes-peptide? rna1 peptide) => true
-               (core/rna-encodes-peptide? rna2 peptide) => false))
+               (core/rna-encodes-peptide? rna2 peptide) => true
+               (core/rna-encodes-peptide? rna3 peptide) => false
+               (core/rna-encodes-peptide? rna4 peptide) => false))
        (fact "stops as early as possible"))
 
 (facts find-encoded-peptides
