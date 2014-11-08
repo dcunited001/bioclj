@@ -1,7 +1,10 @@
 (ns bioclj.core
   (:use [criterium.core])
   (:require [clojure.math.combinatorics :as com]
-            [clojure.core.reducers :as r]))
+            [clojure.core.reducers :as r]
+            [clj-biosequence.core :as bio.core]
+            [clj-biosequence.alphabet :as bio.alpha]
+            ))
 
 (defn now [] (java.util.Date.))
 
@@ -32,12 +35,17 @@
 (def base-pairs {\A \T \T \A \C \G \G \C \a \T \t \A \c \G \g \C})
 
 (def nucleotides '(\A \G \T \C))
+(def rna-nucleotides '(\A \G \T \C))
+(def integer-mass-table {
+  \G 57  \A  71 \S  87 \P  97 \V  99 \T 101 \C 103 \I 113 \L 113 \N 114
+  \D 115 \K 128 \Q 128 \E 129 \M 131 \H 137 \F 147 \R 156 \Y 163 \W 186 })
 
 (defn reverse-complement
   "Returns the reverse complement.  Reverses the string and maps pairs on it."
   [s]
   (apply str (map base-pairs (reverse (vec s)))))
 
+;; TODO: try converting the strings to integers, then compare bitwise
 (defn hamming-distance
   "return the number of mismatches in two equally sized strings, returning distance d
   use dmax to ensure that hamming distance terminates early, dmax defaults to (count a)
@@ -59,6 +67,7 @@
 (defn format-char-list [char-list]
   (map (partial apply str) char-list))
 
+;;TODO: figure out why neighborhood-recur isn't correct
 (defn neighborhood-recur
   [s d]
   ;; seems to be no way to use recur here, not that it would make much of a difference in this alg
@@ -110,9 +119,7 @@
         (let [kmer (subs text i (+ i k))]
           (f h i kmer)))
       (range 0 (inc idxstop))
-      )
-    )
-  )
+      )))
 
 (defn kmer-frequency-with-near-misses
   "returns a hash where keys are kmers and values are the frequency of that word and it's close mismatches with hamming distance < d"
@@ -263,3 +270,38 @@
 
 ;; TODO: find the most frequent k-mers with up to d mismatches and includeing reverse complements...
 ;; TODO: rewrite everything to use r/fold that doesn't mutate state
+
+(def codon-table (bio.alpha/codon-tables 1))
+
+(defn transcribe-rna
+  [rna &
+   {:keys [aminos]
+    :or { aminos "" } }]
+  (if (empty? rna)
+    aminos
+    (recur (nthrest rna 3) { :aminos (str aminos (bio.alpha/codon->aa (take 3 rna) codon-table)) })))
+
+(defn rna-encodes-peptide?
+  [rna peptide &
+   {:keys [aminos original-rna]
+    :or { aminos "" original-rna rna } }]
+  (if (empty? rna)
+    original-rna
+
+    )
+  )
+
+(defn find-encoded-peptides
+  [dna peptide &
+   {:keys [find-rev]
+    :or { find-rev true }}]
+  (if find-rev
+    (concat (find-encoded-peptides dna peptide :find-rev false)
+            (find-encoded-peptides (reverse-complement dna) peptide :find-rev false))
+    (kmer-op
+      #()
+      (* 3 (count peptide))
+      dna
+      )
+    ))
+

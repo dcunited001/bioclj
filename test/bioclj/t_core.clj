@@ -64,3 +64,19 @@
                (core/hamming-distance s1 s2 :d 0) => 1
                (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1
                )))
+
+(facts transcribe-rna
+       (fact "transcribes RNA into a peptide chain"
+             (let [rna "AUGGCCAUGGCGCCCAGAACUGAGAUCAAUAGUACCCGUAUUAACGGGUGA"
+                   peptide "MAMAPRTEINSTRING*"]
+               (core/transcribe-rna rna) => peptide))
+       (fact "also works with DNA")
+       (fact "probably blows up if the RNA chain isn't a multiple of 3"))
+
+(facts rna-encodes-peptide?
+       (fact "if the RNA strand encodes the given pepide")
+
+       (fact "stops as early as possible"))
+
+(facts find-encoded-peptides
+       (fact "finds encoded peptides in both the forward and reverse compliments of an RNA strand"))
