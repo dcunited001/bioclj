@@ -345,7 +345,10 @@
           (fn [i]
             (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
                       (vector (subs peptide i %1)
-                              (if (and (>= i 0) (< %1 (count peptide))) (subs peppep %1 wrapped-end))))
+                              (if (and (>= i 0)
+                                       (< %1 (count peptide))
+                                       (< (- wrapped-end %1) (count peptide)))
+                                (subs peppep %1 wrapped-end))))
                     (range (inc i) (inc (count peptide)))))
           (range 0 (count peptide)))
         ""))))
@@ -390,7 +393,10 @@
               (->> (range (inc i) (inc (count peptide)))
                    (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
                              (vector (subs peptide i %1)
-                                     (if (and (>= i 0) (< %1 (count peptide))) (subs peppep %1 wrapped-end)))))
+                                     (if (and (>= i 0)
+                                              (< %1 (count peptide))
+                                              (< (- wrapped-end %1) (count peptide)))
+                                       (subs peppep %1 wrapped-end)))))
                    (filter #(not (nil? %1)))
                    (map peptide-mass)))
             (range 0 (count peptide)))

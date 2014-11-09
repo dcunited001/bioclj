@@ -135,8 +135,9 @@
 
 (facts cyclic-subpeptides
        (fact "returns the set of possible subpeptides, given a cyclic peptide"
+             ;; TODO: fix so complete protein configurations are only completed once
              (let [peptide "ABCD"
-                   subpeptides '("" "A" "BCDA" "AB" "CDA" "ABC" "DA" "ABCD" "B" "CDAB" "BC" "DAB" "BCD" "C" "DABC" "CD" "D")
+                   subpeptides '("" "A" "AB" "CDA" "ABC" "DA" "ABCD" "B" "BC" "DAB" "BCD" "C" "CD" "D")
                    actual (core/cyclic-subpeptides peptide)]
                (sort actual) => (sort subpeptides)
                (count actual) => (count subpeptides))))
@@ -155,10 +156,14 @@
                (count (filter #(= %1 actual-max) actual)) => 1)))
 
 (facts cyclic-subpeptide-masses
-       (fact "maps the mass sums for each cyclic subpeptide"
-             (let [peptide "LYFE"
-                   actual (core/cyclic-subpeptide-masses peptide)
-                   actual-max (apply max actual)]
-               (count actual) => 17
-               (sort actual) => (sort '(0 113 129 147 163 242 276 276 310 389 405 423 439 552 552 552 552))
-               (count (filter #(= %1 actual-max) actual)) => (count peptide))))
+       (let [peptide "LYFE"
+             actual (core/cyclic-subpeptide-masses peptide)
+             actual-max (apply max actual)]
+         (fact "maps the mass sums for each cyclic subpeptide"
+               (count actual) => 14
+               (sort actual) => (sort '(0 113 129 147 163 242 276 276 310 389 405 423 439 552)))
+         (fact "only count the completely peptide configurations once"
+               (count (filter #(= %1 actual-max) actual)) => 1 ;(count peptide)
+               )))
+
+
