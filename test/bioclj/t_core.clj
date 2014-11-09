@@ -125,3 +125,18 @@
                (sort (core/format-encoded-peptides (core/find-encoded-peptides rna2 peptide2))) => strands2
                )))
 
+(facts linear-subpeptides
+       (fact "returns the set of possible subpeptides, given a linear peptide"
+             (let [peptide "ABCD"
+                   subpeptides '("" "A" "AB" "ABC" "ABCD" "B" "BC" "BCD" "C" "CD" "D")
+                   actual (core/linear-subpeptides peptide)]
+               (sort actual) => (sort subpeptides)
+               (count actual) => (count subpeptides))))
+
+(facts cyclic-subpeptides
+       (fact "returns the set of possible subpeptides, given a cyclic peptide"
+             (let [peptide "ABCD"
+                   subpeptides '("" "A" "BCDA" "AB" "CDA" "ABC" "DA" "ABCD" "B" "CDAB" "BC" "DAB" "BCD" "C" "DABC" "CD" "D")
+                   actual (core/cyclic-subpeptides peptide)]
+               (sort actual) => (sort subpeptides)
+               (count actual) => (count subpeptides))))

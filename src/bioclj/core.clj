@@ -36,7 +36,7 @@
 
 (def nucleotides '(\A \G \T \C))
 (def rna-nucleotides '(\A \G \T \C))
-(def integer-mass-table {\G 57 \A 71 \S 87 \P 97 \V 99 \T 101 \C 103 \I 113 \L 113 \N 114
+(def int-mass-table {\G 57 \A 71 \S 87 \P 97 \V 99 \T 101 \C 103 \I 113 \L 113 \N 114
                          \D 115 \K 128 \Q 128 \E 129 \M 131 \H 137 \F 147 \R 156 \Y 163 \W 186})
 
 (defn reverse-complement
@@ -320,4 +320,32 @@
         idx))
     peptides-map))
 
+;; ohhhh don't you wish it was that easy.... well i guess it's not too hard
+;(defn num-subpeptides [n] (count (com/partitions (range 1 n))))
 
+(defn linear-subpeptides
+  "returns the set of possible subpeptides, given a linear peptide"
+  [peptide]
+  (conj
+    (mapcat
+      (fn [i]
+        (map #(subs peptide i %1)
+             (range (+ i 1) (+ 1 (count peptide)))))
+      (range 0 (count peptide)))
+    ""))
+
+(defn cyclic-subpeptides
+  "returns the set of possible subpeptides, given a cyclic peptide"
+  [peptide]
+  (let [peppep (str peptide peptide)]
+    (filter
+      #(not (nil? %1))
+      (conj
+        (mapcat
+          (fn [i]
+            (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
+                      (vector (subs peptide i %1)
+                              (if (and (>= i 0) (< %1 (count peptide))) (subs peppep %1 wrapped-end))))
+                    (range (+ i 1) (+ 1 (count peptide)))))
+          (range 0 (count peptide)))
+        ""))))
