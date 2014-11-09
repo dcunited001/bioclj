@@ -349,3 +349,19 @@
                     (range (+ i 1) (+ 1 (count peptide)))))
           (range 0 (count peptide)))
         ""))))
+
+(defn peptide-mass [peptide]
+  (apply + (map int-mass-table (vec peptide))))
+
+;(defmulti linear-subpeptide-masses
+;  "calculates the masses.  if using the masses-only method, then only the masses are returned and
+;  they're not correlated to the subpeptides"
+;  (fn [peptide &
+;       {:keys [method cyclic] :or { method :masses-only cyclic false }}] method))
+; TODO: find out why this destructuring isn't working here, defaults do not work and wrong method is dispatched
+;(defmethod linear-subpeptide-masses :masses-only
+;  [peptide & {:keys [method cyclic]}] [peptide cyclic])
+;(defmethod linear-subpeptide-masses false
+;  [peptide & {:keys [method cyclic] :or { cyclic false }}] [peptide method cyclic])
+
+

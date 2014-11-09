@@ -140,3 +140,7 @@
                    actual (core/cyclic-subpeptides peptide)]
                (sort actual) => (sort subpeptides)
                (count actual) => (count subpeptides))))
+
+(facts peptide-mass
+       (fact "sums each amino acid's mass in daltons"
+             (core/peptide-mass "CANCER") => 676))
