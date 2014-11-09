@@ -265,6 +265,7 @@
 
 ;; TODO: find the most frequent k-mers with up to d mismatches and includeing reverse complements...
 ;; TODO: rewrite everything to use r/fold that doesn't mutate state
+;; TODO: rewrite methods to use -> and ->>
 
 (def codon-table (bio.alpha/codon-tables 1))
 
@@ -320,8 +321,12 @@
         idx))
     peptides-map))
 
-;; ohhhh don't you wish it was that easy.... well i guess it's not too hard
-;(defn num-subpeptides [n] (count (com/partitions (range 1 n))))
+;; The quiz online doesn't include the null set or the complete set, so subtract 2 ... for cyclic
+;; for linear, the null set & complete sets are included, so the following is correct
+;; here's that analytic combonatorics again
+(defn num-linear-subpeptides [n] (or (and (< n 2) 2)
+                                     (+ 2 (apply + (range 2 (inc n))))))
+(defn num-cyclic-subpeptides [n] (+ 1 (* n (dec n)) 1))
 
 (defn linear-subpeptides
   "returns the set of possible subpeptides, given a linear peptide"
