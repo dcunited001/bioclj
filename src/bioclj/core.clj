@@ -37,8 +37,8 @@
 (def nucleotides '(\A \G \T \C))
 (def rna-nucleotides '(\A \G \T \C))
 (def integer-mass-table {
-  \G 57  \A  71 \S  87 \P  97 \V  99 \T 101 \C 103 \I 113 \L 113 \N 114
-  \D 115 \K 128 \Q 128 \E 129 \M 131 \H 137 \F 147 \R 156 \Y 163 \W 186 })
+                         \G 57 \A 71 \S 87 \P 97 \V 99 \T 101 \C 103 \I 113 \L 113 \N 114
+                         \D 115 \K 128 \Q 128 \E 129 \M 131 \H 137 \F 147 \R 156 \Y 163 \W 186})
 
 (defn reverse-complement
   "Returns the reverse complement.  Reverses the string and maps pairs on it."
@@ -180,17 +180,13 @@
                                    (apply (partial conj arr)
                                           (subvec ind (.indexOf ind val)
                                                   (inc (.indexOf ind clump-end))))
-                                   arr)
-                                 )
-                               )
+                                   arr)))
                              (sorted-set)
                              ind))]
          (if (not-empty clumped) (assoc! %1 key clumped) %1))
        (transient {})
        kindex)
-     )
-   )
-  )
+     )))
 
 (defn hammify-domain
   "permute a domain and return matches with hamming distance less than d for strings of length k"
@@ -304,13 +300,25 @@
   (if find-rev
     (into {} (filter
                (comp not empty? val)
-                     (merge-with
-                       concat (find-encoded-peptides rna peptide :find-rev false)
-                       (find-encoded-peptides (reverse-complement rna) peptide :find-rev false :reverse true))))
+               (merge-with
+                 concat
+                 (find-encoded-peptides rna peptide :find-rev false)
+                 (find-encoded-peptides (reverse-complement rna) peptide :find-rev false :reverse true))))
     (kmer-op #(if (rna-encodes-peptide? %3 peptide)
                ;; report back negative indices for the reverse complement
                (conj (%1 %3 []) (if reverse (* -1 %2) %2))
                (%1 %3 []))
              (* 3 (count peptide))
              rna)))
+
+(defn format-encoded-peptides
+  [peptides-map]
+  (mapcat
+    (fn [[strand idx]]
+      (map
+        #(if (> %1 0) strand
+          (apply str (reverse-complement strand)))
+        idx))
+    peptides-map))
+
 
