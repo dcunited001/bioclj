@@ -330,7 +330,7 @@
     (mapcat
       (fn [i]
         (map #(subs peptide i %1)
-             (range (+ i 1) (+ 1 (count peptide)))))
+             (range (inc i) (inc (count peptide)))))
       (range 0 (count peptide)))
     ""))
 
@@ -346,7 +346,7 @@
             (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
                       (vector (subs peptide i %1)
                               (if (and (>= i 0) (< %1 (count peptide))) (subs peppep %1 wrapped-end))))
-                    (range (+ i 1) (+ 1 (count peptide)))))
+                    (range (inc i) (inc (count peptide)))))
           (range 0 (count peptide)))
         ""))))
 
@@ -364,4 +364,34 @@
 ;(defmethod linear-subpeptide-masses false
 ;  [peptide & {:keys [method cyclic] :or { cyclic false }}] [peptide method cyclic])
 
+(defn linear-subpeptide-masses
+  [peptide &
+   {:keys [method cyclic] :or {method :masses-only cyclic false}}]
+  (if (= method :masses-only)
+    (sort
+      (conj
+        (mapcat
+          (fn [i]
+            (->> (range (inc i) (inc (count peptide)))
+                 (map #(subs peptide i %1))
+                 (map peptide-mass)))
+          (range 0 (count peptide)))
+        0))))
 
+(defn cyclic-subpeptide-masses
+  [peptide &
+   {:keys [method cyclic] :or {method :masses-only cyclic false}}]
+  (let [peppep (str peptide peptide)]
+    (if (= method :masses-only)
+      (sort
+        (conj
+          (mapcat
+            (fn [i]
+              (->> (range (inc i) (inc (count peptide)))
+                   (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
+                             (vector (subs peptide i %1)
+                                     (if (and (>= i 0) (< %1 (count peptide))) (subs peppep %1 wrapped-end)))))
+                   (filter #(not (nil? %1)))
+                   (map peptide-mass)))
+            (range 0 (count peptide)))
+          0)))))

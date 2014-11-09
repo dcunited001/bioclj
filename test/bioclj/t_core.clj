@@ -144,3 +144,21 @@
 (facts peptide-mass
        (fact "sums each amino acid's mass in daltons"
              (core/peptide-mass "CANCER") => 676))
+
+(facts linear-subpeptide-masses
+       (fact "maps the mass sums for each linear subpeptide"
+             (let [peptide "LYFE"
+                   actual (core/linear-subpeptide-masses peptide)
+                   actual-max (apply max actual)]
+               (count actual) => 11
+               (sort actual) => (sort '(0 113 129 147 163 276 276 310 423 439 552))
+               (count (filter #(= %1 actual-max) actual)) => 1)))
+
+(facts cyclic-subpeptide-masses
+       (fact "maps the mass sums for each cyclic subpeptide"
+             (let [peptide "LYFE"
+                   actual (core/cyclic-subpeptide-masses peptide)
+                   actual-max (apply max actual)]
+               (count actual) => 17
+               (sort actual) => (sort '(0 113 129 147 163 242 276 276 310 389 405 423 439 552 552 552 552))
+               (count (filter #(= %1 actual-max) actual)) => (count peptide))))
