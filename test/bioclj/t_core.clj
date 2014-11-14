@@ -157,13 +157,22 @@
 
 (facts cyclic-subpeptide-masses
        (let [peptide "LYFE"
+             peptide-masses [113 163 147 129]
+             expected (sort '(0 113 129 147 163 242 276 276 310 389 405 423 439 552))
              actual (core/cyclic-subpeptide-masses peptide)
              actual-max (apply max actual)]
          (fact "maps the mass sums for each cyclic subpeptide"
                (count actual) => 14
-               (sort actual) => (sort '(0 113 129 147 163 242 276 276 310 389 405 423 439 552)))
+               (sort actual) => expected)
          (fact "only count the completely peptide configurations once"
-               (count (filter #(= %1 actual-max) actual)) => 1 ;(count peptide)
+               (count (filter #(= %1 actual-max) actual)) => 1) ;(count peptide)
+         (fact "also works when run on a collection of integers, though excludes possibilities with duplicate amino masses"
+               (core/cyclic-subpeptide-masses peptide-masses) => expected
                )))
 
-
+(facts expand-peptides
+       (fact "expands peptides by adding each possible amino acid mass to the enumeration, returning a list of vectors"
+             (let [peptides [[123]]
+                   expected (map (fn [i] [123 i]) core/int-mass-values)]
+               (core/expand-peptides peptides) => expected
+               )))

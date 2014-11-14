@@ -37,7 +37,9 @@
 (def nucleotides '(\A \G \T \C))
 (def rna-nucleotides '(\A \G \T \C))
 (def int-mass-table {\G 57 \A 71 \S 87 \P 97 \V 99 \T 101 \C 103 \I 113 \L 113 \N 114
-                         \D 115 \K 128 \Q 128 \E 129 \M 131 \H 137 \F 147 \R 156 \Y 163 \W 186})
+                     \D 115 \K 128 \Q 128 \E 129 \M 131 \H 137 \F 147 \R 156 \Y 163 \W 186})
+
+(def int-mass-values (distinct (vals int-mass-table)))
 
 (defn reverse-complement
   "Returns the reverse complement.  Reverses the string and maps pairs on it."
@@ -386,23 +388,76 @@
           (range 0 (count peptide)))
         0))))
 
-(defn cyclic-subpeptide-masses
-  [peptide &
-   {:keys [method cyclic] :or {method :masses-only cyclic false}}]
+;; arg! the loss of parity when converting between amino's and masses is a bit frustrating
+;; this algorithm should use floats, not integers!  with integers, theres 18 distinct amino masses.
+;; or at least use the float*100, converted to integers, converting masses back to their floats when necessary
+;; this means that my algorithm returns different answers when it's run on a string vs. a collection of masses..
+(defmulti cyclic-subpeptide-masses class)
+(defmethod cyclic-subpeptide-masses String [peptide]
   (let [peppep (str peptide peptide)]
-    (if (= method :masses-only)
-      (sort
-        (conj
-          (mapcat
-            (fn [i]
-              (->> (range (inc i) (inc (count peptide)))
-                   (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
-                             (vector (subs peptide i %1)
-                                     (if (and (>= i 0)
-                                              (< %1 (count peptide))
-                                              (< (- wrapped-end %1) (count peptide)))
-                                       (subs peppep %1 wrapped-end)))))
-                   (filter #(not (nil? %1)))
-                   (map peptide-mass)))
-            (range 0 (count peptide)))
-          0)))))
+    (sort
+      (conj
+        (mapcat
+          (fn [i]
+            (->> (range (inc i) (inc (count peptide)))
+                 (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
+                           (vector (subs peptide i %1)
+                                   (if (and (>= i 0)
+                                            (< %1 (count peptide))
+                                            (< (- wrapped-end %1) (count peptide)))
+                                     (subs peppep %1 wrapped-end)))))
+                 (filter #(not (nil? %1)))
+                 (map peptide-mass)))
+          (range 0 (count peptide)))
+        0))))
+;; needs to be called on a vector
+;; i may need to account for the collection's item type, if calling on collection of chars
+(defmethod cyclic-subpeptide-masses clojure.lang.PersistentVector [peptide]
+  (let [peppep (vec (concat peptide peptide))]
+    (sort
+      (conj
+        (mapcat
+          (fn [i]
+            (->> (range (inc i) (inc (count peptide)))
+                 (mapcat #(let [wrapped-end (+ (inc (count peptide)) i)]
+                           (vector
+                             (subvec peptide i %1)
+                             (if (and (>= i 0)
+                                      (< %1 (count peptide))
+                                      (< (- wrapped-end %1) (count peptide)))
+                               (subvec peppep %1 wrapped-end)))))
+                 (filter #(not (nil? %1)))
+                 (map (partial apply +))))
+          (range 0 (count peptide)))
+        0))))
+
+(defn format-int-masses [peptide] (clojure.string/join "-" peptide))
+
+(defn expand-peptides
+  "takes a list of peptides and expands it, returning a set of peptides,
+  each containing one more amino acid than previous.  input should be a Vector of char-lists,
+  not a Vector of strings"
+  [peptides]
+  (let [n-threads 8
+        concatfn (fn ([] []) ([x y] (concat x y)))]
+    (r/fold 5 concatfn
+            (fn [pvec amino-mass]
+              (concat pvec
+                      (r/fold
+                        (inc (/ (count peptides) n-threads))
+                        concatfn
+                        (fn [pvec2 peptide] (conj pvec2 (conj peptide amino-mass)))
+                        peptides)))
+            int-mass-values)))
+
+(defn cyclospectrum [peptide]
+
+  )
+
+
+(defn peptide-score
+  "compares a peptide with it's actual spectral content,
+  returns a score for the sum of missing/incorrect masses"
+  [peptide spectra]
+
+  )
