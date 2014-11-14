@@ -176,3 +176,19 @@
                    expected (map (fn [i] [123 i]) core/int-mass-values)]
                (core/expand-peptides peptides) => expected
                )))
+
+(facts consistent-spectra
+       (let [actual-spectra-freq (core/spectra-count (core/cyclic-subpeptide-masses "CANCER"))
+             spectra1 '(71 129 288)
+             spectra2 '(71 129 288 288)
+             spectra3 '(71 129 288 288 288)
+             spectra4 '(71 129 300)]
+         (fact "spectra are consistent which include one each of the masses"
+               (core/consistent-spectra spectra1 actual-spectra-freq) => true)
+         (fact "spectra are consistent which include up to count of the actual spectra"
+               (core/consistent-spectra spectra2 actual-spectra-freq) => true)
+         (fact "spectra are inconsistent when they include more than the count of the actual spectra"
+               (core/consistent-spectra spectra3 actual-spectra-freq) => false)
+         (fact "spectra are inconsistent when they include frequencies not in the actual spectra"
+               (core/consistent-spectra spectra4 actual-spectra-freq) => false)))
+

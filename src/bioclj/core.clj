@@ -450,9 +450,22 @@
                         peptides)))
             int-mass-values)))
 
-(defn cyclospectrum [peptide]
+(defn consistent-spectra
+  [expected-spectra actual-spectra-count]
+  ;; hmmmm.. to start from the top or from the bottom? 何をしますか？
+  (let [spectra-freq (frequencies expected-spectra)]
+    (reduce
+      (fn [cs freq]
+        ;; either the count is below the max for each frequency or return early
+        (or (>= (actual-spectra-count freq 0) (spectra-freq freq))
+            (reduced false)))
+      true
+      (reverse (sort (keys spectra-freq))))))
 
-  )
+(defn spectra-count
+  [spectra]
+  ;; lol what am i doing, clojure FTW
+  (frequencies spectra))
 
 
 (defn peptide-score
