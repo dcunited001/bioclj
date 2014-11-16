@@ -480,7 +480,6 @@
      (cyclopeptide-sequencing spectra n-aminos [[]])))
 
   ([spectra n-aminos peptides]
-   (prn (count peptides))
    (if (or (empty? peptides) (= n-aminos (count (first peptides))))
      peptides
      (let [expanded-peptides (expand-peptides peptides)
@@ -489,13 +488,14 @@
        (->> expanded-peptides
             (reduce
               (fn [possible-peptides pep]
-                (if (= (apply + pep) parent-mass)
-                  (if (= (cyclic-subpeptide-masses pep) spectra)
-                    (conj possible-peptides pep)            ;; if it's an exact match, return early
-                    possible-peptides)
-                  (if (consistent-spectra pep freq-spectra)
-                    (conj possible-peptides pep)
-                    possible-peptides)))
+                (let [peptide-mass (apply + pep)]
+                  (if (= peptide-mass parent-mass)
+                    (if (= (cyclic-subpeptide-masses pep) spectra)
+                      (conj possible-peptides pep)          ;; if it's an exact match, return early
+                      possible-peptides)
+                    (if (and (< peptide-mass parent-mass) (consistent-spectra pep freq-spectra))
+                      (conj possible-peptides pep)
+                      possible-peptides))))
               [])
             (filter #(not (nil? %1)))
             (vec)
