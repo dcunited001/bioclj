@@ -192,3 +192,29 @@
          (fact "spectra are inconsistent when they include frequencies not in the actual spectra"
                (core/consistent-spectra spectra4 actual-spectra-freq) => false)))
 
+(facts inverse-num-cyclic-subpeptides
+       (fact "returns the inverse of num-cyclic-subpeptides"
+             (core/inverse-num-cyclic-subpeptides 2) => 1
+             (core/inverse-num-cyclic-subpeptides 4) => 2
+             (core/inverse-num-cyclic-subpeptides 8) => 3
+             (core/inverse-num-cyclic-subpeptides 14) => 4
+             (core/inverse-num-cyclic-subpeptides 22) => 5
+             (core/inverse-num-cyclic-subpeptides 32) => 6
+             (core/inverse-num-cyclic-subpeptides 44) => 7
+             (core/inverse-num-cyclic-subpeptides 58) => 8))
+
+(facts cyclopeptide-sequencing
+       (fact "when running against an empty [0] spectrum, an immediate match is returned"
+
+             )
+       (fact "when running against a spectrum with one amino acid, the correct match is returned"
+
+             )
+       (fact "when running against longer spectrums, the correct answer is returned"
+
+             )
+       (fact "when running against a spectrum that has no solution, it doesn't blow up"
+
+             )
+
+       )

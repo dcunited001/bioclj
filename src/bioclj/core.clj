@@ -4,6 +4,7 @@
             [clojure.core.reducers :as r]
             [clj-biosequence.core :as bio.core]
             [clj-biosequence.alphabet :as bio.alpha]
+            [clojure.math.numeric-tower :as maths]
             ))
 
 (defn now [] (java.util.Date.))
@@ -329,6 +330,12 @@
 (defn num-linear-subpeptides [n] (or (and (< n 2) 2)
                                      (+ 2 (apply + (range 2 (inc n))))))
 (defn num-cyclic-subpeptides [n] (+ 1 (* n (dec n)) 1))
+(defn inverse-num-cyclic-subpeptides
+  [z]
+  (if (= z 2)
+    1
+    (/ (+ 1 (maths/sqrt (- (* 4 z) 7))) 2)))
+
 
 (defn linear-subpeptides
   "returns the set of possible subpeptides, given a linear peptide"
@@ -469,9 +476,10 @@
 
 (defn cyclopeptide-sequencing
   ([spectra]
-   (cyclopeptide-sequencing spectra [[]]))
+   (let [n-aminos (inverse-num-cyclic-subpeptides (count spectra))]
+     (cyclopeptide-sequencing spectra n-aminos [[]])))
 
-  ([spectra peptides]
+  ([spectra n-aminos peptides]
    (if (number? (first peptides))
      peptides
      (let [expanded-peptides (expand-peptides peptides)
@@ -490,8 +498,7 @@
               [])
             (filter #(not (nil? %1)))
             (vec)
-            ;(prn)
-            (recur spectra)
+            (recur spectra n-aminos)
             )
 
        )
