@@ -332,7 +332,7 @@
 (defn num-cyclic-subpeptides [n] (+ 1 (* n (dec n)) 1))
 (defn inverse-num-cyclic-subpeptides
   [z]
-  (if (= z 2)
+  (if (<= z 2)
     1
     (/ (+ 1 (maths/sqrt (- (* 4 z) 7))) 2)))
 
@@ -480,7 +480,8 @@
      (cyclopeptide-sequencing spectra n-aminos [[]])))
 
   ([spectra n-aminos peptides]
-   (if (number? (first peptides))
+   (prn (count peptides))
+   (if (or (empty? peptides) (= n-aminos (count (first peptides))))
      peptides
      (let [expanded-peptides (expand-peptides peptides)
            parent-mass (last spectra)
@@ -490,7 +491,7 @@
               (fn [possible-peptides pep]
                 (if (= (apply + pep) parent-mass)
                   (if (= (cyclic-subpeptide-masses pep) spectra)
-                    (do (prn pep) (reduced pep))              ;; if it's an exact match, return early
+                    (conj possible-peptides pep)            ;; if it's an exact match, return early
                     possible-peptides)
                   (if (consistent-spectra pep freq-spectra)
                     (conj possible-peptides pep)
@@ -499,13 +500,11 @@
             (filter #(not (nil? %1)))
             (vec)
             (recur spectra n-aminos)
-            )
+            )))))
 
-       )
-     )
-   ))
-
-
+(defn format-cyclopeptide-sequencing
+  [spectra]
+  (clojure.string/join " " (map format-int-masses (cyclopeptide-sequencing spectra))))
 
 (defn peptide-score
   "compares a peptide with it's actual spectral content,

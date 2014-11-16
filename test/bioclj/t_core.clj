@@ -204,17 +204,15 @@
              (core/inverse-num-cyclic-subpeptides 58) => 8))
 
 (facts cyclopeptide-sequencing
-       (fact "when running against an empty [0] spectrum, an immediate match is returned"
-
-             )
-       (fact "when running against a spectrum with one amino acid, the correct match is returned"
-
-             )
+       (fact "when running against an empty [0] spectrum, an empty vector is returned"
+             (core/cyclopeptide-sequencing [0]) => [])
+       (fact "when running against a spectrum with one amino acid, the only match is returned"
+             (core/cyclopeptide-sequencing [0 71]) => [[71]])
        (fact "when running against longer spectrums, the correct answer is returned"
+             (core/cyclopeptide-sequencing [0 113 128 186 241 299 314 427]) => [[186 128 113] [128 186 113] [186 113 128] [113 186 128] [128 113 186] [113 128 186]])
 
-             )
+
+
        (fact "when running against a spectrum that has no solution, it doesn't blow up"
-
              )
-
        )
