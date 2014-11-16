@@ -210,9 +210,12 @@
              (core/cyclopeptide-sequencing [0 71]) => [[71]])
        (fact "when running against longer spectrums, the correct answer is returned"
              (core/cyclopeptide-sequencing [0 113 128 186 241 299 314 427]) => [[186 128 113] [128 186 113] [186 113 128] [113 186 128] [128 113 186] [113 128 186]])
-
-
-
        (fact "when running against a spectrum that has no solution, it doesn't blow up"
              )
        )
+
+(facts cyclopeptide-score
+       (fact "masses in experimental spectra that match to actual spectra contribute +1 to the score."
+             (core/spectral-score (core/cyclic-subpeptide-masses "NQEL") [0 99 113 114 128 227 257 299 355 356 370 371 484]) => 11)
+       (fact "masses appearing n times in the actual spectra can only add n to the score"
+             (core/spectral-score (core/cyclic-subpeptide-masses "NQEL") [0 114 113 114 128 227 257 299 355 356 370 371 484]) => 11))

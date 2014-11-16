@@ -486,6 +486,8 @@
            parent-mass (last spectra)
            freq-spectra (frequencies spectra)]
        (->> expanded-peptides
+            ;;TODO: replace with fold to take advantage of threading
+            ;; ... my 2013 MBP has 4 cores WAT THE $#@! ???
             (reduce
               (fn [possible-peptides pep]
                 (let [peptide-mass (apply + pep)]
@@ -506,9 +508,21 @@
   [spectra]
   (clojure.string/join " " (map format-int-masses (cyclopeptide-sequencing spectra))))
 
-(defn peptide-score
+(defn spectral-score
   "compares a peptide with it's actual spectral content,
   returns a score for the sum of missing/incorrect masses"
-  [peptide spectra]
+  [actual experi]
+  (let [actual-freq (spectra-count actual)
+        experi-freq (spectra-count experi)
+        actual-keys (keys actual-freq)]
+    ;; totally probably not worth threading but oh well .. IT_SO_EASY_!!! Y U NOT THREAD?!
+    (r/fold
+      (/ (count actual-keys) 4)
+      (fn ([] 0)
+        ([x y] (+ x y)))
+      (fn [score key]
+        (+ score (or (and (> (experi-freq key 0) (actual-freq key)) (actual-freq key))
+                     (and (experi-freq key) (<= (experi-freq key) (actual-freq key)) (experi-freq key))
+                     0)))
+      actual-keys)))
 
-  )
