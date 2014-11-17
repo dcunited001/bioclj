@@ -549,15 +549,15 @@
 
 ;; ugh i really wish i was not copy-pasting this algorithm from above, but alas
 (defn leaderboard-cyclopeptide-sequencing
-  ([n-highest spectra]
+  ([n-highest spectra {:keys [alphabet] :or {alphabet int-mass-values}}]
    ;; pick a value for start-trim that's good for all peptide lengths
    (let [start-trim (/ (maths/floor (inverse-num-cyclic-subpeptides (count spectra))) 5)]
-     (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] [[]])))
+     (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] [[]] :alphabet alphabet)))
 
   ([n-highest round start-trim spectra last-peptides peptides & {:keys [alphabet] :or {alphabet int-mass-values}}]
    (if (empty? peptides)
      last-peptides
-     (let [expanded-peptides (expand-peptides peptides)
+     (let [expanded-peptides (expand-peptides peptides :alphabet alphabet)
            parent-mass (last spectra)]
        (->> expanded-peptides
             ;;TODO: replace with fold?
@@ -596,11 +596,22 @@
     dif)))
 
 (defn inversemap-cat
-  "Y SO .. HARD? ..."
   [m]
-  (into
+  (reduce
+    (fn [h [k v]]
+      (merge h {k (map #(first %1) v)}))
     {}
-    (reduce
-      (fn [h [k v]]
-        (merge-with concat h [v (list k)]))
-      m)))
+    (group-by val m)))
+
+(defn convolution-cyclopeptide-sequencing
+  [m n spectra]
+  ;; just reusing the leaderboard algorithm because it's the same thing
+  (let [alphabeta (->> spectra
+                                (spectral-convolution)
+                                (filter #(and (>= %1 57) (<= %1 200)))
+                                (frequencies)
+                                (inversemap-cat)
+                                (trim-leaderboard m []))]
+    (prn alphabeta)
+    (leaderboard-cyclopeptide-sequencing n spectra { :alphabet alphabeta })
+    ))
