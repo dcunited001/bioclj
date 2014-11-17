@@ -147,13 +147,17 @@
              (core/peptide-mass "CANCER") => 676))
 
 (facts linear-subpeptide-masses
+       (let [peptide "LYFE"
+             peptide-masses [113 163 147 129]
+             expected (sort '(0 113 129 147 163 276 276 310 423 439 552))
+             actual (core/linear-subpeptide-masses peptide)
+             actual-max (apply max actual)]
        (fact "maps the mass sums for each linear subpeptide"
-             (let [peptide "LYFE"
-                   actual (core/linear-subpeptide-masses peptide)
-                   actual-max (apply max actual)]
                (count actual) => 11
-               (sort actual) => (sort '(0 113 129 147 163 276 276 310 423 439 552))
-               (count (filter #(= %1 actual-max) actual)) => 1)))
+               (sort actual) => expected
+               (count (filter #(= %1 actual-max) actual)) => 1)
+       (fact "also works when run on a collection of integers, though excludes possibilities with duplicate amino masses"
+             (core/linear-subpeptide-masses peptide-masses) => expected)))
 
 (facts cyclic-subpeptide-masses
        (let [peptide "LYFE"

@@ -381,19 +381,29 @@
 ;(defmethod linear-subpeptide-masses false
 ;  [peptide & {:keys [method cyclic] :or { cyclic false }}] [peptide method cyclic])
 
-(defn linear-subpeptide-masses
-  [peptide &
-   {:keys [method cyclic] :or {method :masses-only cyclic false}}]
-  (if (= method :masses-only)
-    (sort
-      (conj
-        (mapcat
-          (fn [i]
-            (->> (range (inc i) (inc (count peptide)))
-                 (map #(subs peptide i %1))
-                 (map peptide-mass)))
-          (range 0 (count peptide)))
-        0))))
+(defmulti linear-subpeptide-masses class)
+(defmethod linear-subpeptide-masses String [peptide]
+  (sort
+    (conj
+      (mapcat
+        (fn [i]
+          (->> (range (inc i) (inc (count peptide)))
+               (map #(subs peptide i %1))
+               (map peptide-mass)))
+        (range 0 (count peptide)))
+      0)))
+
+(defmethod linear-subpeptide-masses clojure.lang.PersistentVector [peptide]
+  (sort
+    (conj
+      (mapcat
+        (fn [i]
+          (->> (range (inc i) (inc (count peptide)))
+               (map #(subvec peptide i %1))
+               (map (partial apply +))))
+        (range 0 (count peptide)))
+      0)))
+
 
 ;; arg! the loss of parity when converting between amino's and masses is a bit frustrating
 ;; this algorithm should use floats, not integers!  with integers, theres 18 distinct amino masses.
