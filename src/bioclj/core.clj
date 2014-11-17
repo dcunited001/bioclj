@@ -79,7 +79,7 @@
             subhood (neighborhood-recur sub d)]
         (reduce
           (fn [thishood t]
-            (if (<= (hamming-distance sub t :dmax (inc d)) d)
+            (if (< (hamming-distance sub t :dmax (inc d)) d)
               (apply conj thishood (map #(conj t %1) nucleotides))
               (conj thishood (conj t (first sub)))))
           '()
@@ -131,7 +131,7 @@
       (fn [h i kmer]
         (merge-with + h
                     (r/fold
-                      (fn combinef ([] {}) ([x y] (merge x y)))
+                      (fn combinef ([] {}) ([x y] (merge-with + x y)))
                       (fn fold-neighbor-indices [nh n] (assoc nh n 1))
                       (format-char-list (neighborhood-recur kmer d)))))
       + k d text)))
@@ -537,7 +537,7 @@
 
 (defn trim-leaderboard
   [n top-scoring leaderboard]
-  (if (<= n 0)
+  (if (or (<= n 0) (empty? leaderboard))
     top-scoring
     (let [max-score (apply max (keys leaderboard))
           max-peptides (leaderboard max-score)]
@@ -555,24 +555,19 @@
    (leaderboard-cyclopeptide-sequencing n-highest spectra [[]] [[]]))
 
   ([n-highest spectra last-peptides peptides]
+   (prn peptides)
    (if (empty? peptides)
      last-peptides
      (let [expanded-peptides (expand-peptides peptides)
-           parent-mass (last spectra)
-           freq-spectra (frequencies spectra)]
+           parent-mass (last spectra)]
        (->> expanded-peptides
             ;;TODO: replace with fold?
             (reduce
               (fn [possible-peptides pep]
                 (let [peptide-mass (apply + pep)]
-                  (if (= peptide-mass parent-mass)
-                    (let [peptide-spectra (linear-subpeptide-masses pep)]
-                      (if (= peptide-spectra spectra)
-                        (merge-into-leaderboard possible-peptides [pep] peptide-spectra spectra)
-                        possible-peptides))
-                    (if (and (< peptide-mass parent-mass) (consistent-spectra pep freq-spectra))
-                      (merge-into-leaderboard possible-peptides [pep] (linear-subpeptide-masses pep) spectra)
-                      possible-peptides))))
+                  (if (<= peptide-mass parent-mass)
+                    (merge-into-leaderboard possible-peptides [pep] (linear-subpeptide-masses pep) spectra)
+                    possible-peptides)))
               {})
             (trim-leaderboard n-highest [])
             (recur n-highest spectra peptides)
