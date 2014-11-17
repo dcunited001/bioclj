@@ -211,11 +211,28 @@
        (fact "when running against longer spectrums, the correct answer is returned"
              (core/cyclopeptide-sequencing [0 113 128 186 241 299 314 427]) => [[186 128 113] [128 186 113] [186 113 128] [113 186 128] [128 113 186] [113 128 186]])
        (fact "when running against a spectrum that has no solution, it doesn't blow up"
-             )
-       )
+             ))
 
 (facts cyclopeptide-score
        (fact "masses in experimental spectra that match to actual spectra contribute +1 to the score."
              (core/spectral-score (core/cyclic-subpeptide-masses "NQEL") [0 99 113 114 128 227 257 299 355 356 370 371 484]) => 11)
        (fact "masses appearing n times in the actual spectra can only add n to the score"
              (core/spectral-score (core/cyclic-subpeptide-masses "NQEL") [0 114 113 114 128 227 257 299 355 356 370 371 484]) => 11))
+
+(facts trim-leaderboard
+       (fact "trims leaderboard recursively"
+             (let [peptides
+                   {1 [15]
+                    2 [14]
+                    3 [13]
+                    4 [9 10 11 12]
+                    5 [6 7 8]
+                    6 [4 5]
+                    7 [3]
+                    8 [2]
+                    9 [1]}]
+               (core/trim-leaderboard 3 [] peptides) => [1 2 3]
+               (core/trim-leaderboard 4 [] peptides) => [1 2 3 4 5]
+               (core/trim-leaderboard 5 [] peptides) => [1 2 3 4 5]
+               (core/trim-leaderboard 6 [] peptides) => [1 2 3 4 5 6 7 8]
+               (core/trim-leaderboard 8 [] peptides) => [1 2 3 4 5 6 7 8])))

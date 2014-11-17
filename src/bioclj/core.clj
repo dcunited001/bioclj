@@ -493,13 +493,12 @@
                 (let [peptide-mass (apply + pep)]
                   (if (= peptide-mass parent-mass)
                     (if (= (cyclic-subpeptide-masses pep) spectra)
-                      (conj possible-peptides pep)          ;; if it's an exact match, return early
+                      (conj possible-peptides pep)
                       possible-peptides)
                     (if (and (< peptide-mass parent-mass) (consistent-spectra pep freq-spectra))
                       (conj possible-peptides pep)
                       possible-peptides))))
               [])
-            (filter #(not (nil? %1)))
             (vec)
             (recur spectra n-aminos)
             )))))
@@ -525,4 +524,51 @@
                      (and (experi-freq key) (<= (experi-freq key) (actual-freq key)) (experi-freq key))
                      0)))
       actual-keys)))
+
+(defn trim-leaderboard
+  [n top-scoring leaderboard]
+  (if (<= n 0)
+    top-scoring
+    (let [max-score (apply max (keys leaderboard))
+          max-peptides (leaderboard max-score)]
+      (recur (- n (count max-peptides))
+             (concat top-scoring max-peptides)
+             (dissoc leaderboard max-score)))))
+
+(defn merge-into-leaderboard
+  [possible-peptides peptide peptide-spectra spectra]
+  (merge-with concat possible-peptides {(spectral-score peptide-spectra spectra) peptide}))
+
+(defn peptide-score-tuple
+  [peptide experimental-spectra]
+  {:peptide peptide :score (spectral-score (cyclic-subpeptide-masses peptide) experimental-spectra)})
+
+;; ugh i really wish i was not copy-pasting this algorithm from above, but alas
+(defn leaderboard-cyclopeptide-sequencing
+  ([n-highest spectra]
+   (let [n-aminos (inverse-num-cyclic-subpeptides (count spectra))]
+     (leaderboard-cyclopeptide-sequencing n-highest spectra n-aminos [[]])))
+
+  ([n-highest spectra n-aminos peptides]
+   (if (or (empty? peptides) (= n-aminos (count (first peptides))))
+     peptides
+     (let [expanded-peptides (expand-peptides peptides)
+           parent-mass (last spectra)
+           freq-spectra (frequencies spectra)]
+       (->> expanded-peptides
+            ;;TODO: replace with fold?
+            (reduce
+              (fn [possible-peptides pep]
+                (let [peptide-mass (apply + pep)]
+                  (if (= peptide-mass parent-mass)
+                    (let [peptide-spectra (cyclic-subpeptide-masses pep)]
+                      (if (= peptide-spectra spectra)
+                        (merge-into-leaderboard possible-peptides pep peptide-spectra spectra)
+                        possible-peptides))
+                    (if (and (< peptide-mass parent-mass) (consistent-spectra pep freq-spectra))
+                      (merge-into-leaderboard possible-peptides pep (cyclic-subpeptide-masses pep) spectra)
+                      possible-peptides))))
+              {})
+            (recur n-highest spectra n-aminos)
+            )))))
 
