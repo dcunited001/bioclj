@@ -179,7 +179,12 @@
              (let [peptides [[123]]
                    expected (map (fn [i] [123 i]) core/int-mass-values)]
                (core/expand-peptides peptides) => expected
-               )))
+               ))
+       (fact "can be expanded using an 'alphabet' of specified int-mass-values'"
+             (let [peptides [[123]]
+                   alphabet [1 2 3]
+                   expected (map (fn [i] [123 i]) alphabet)]
+               (core/expand-peptides peptides :alphabet alphabet) => expected)))
 
 (facts consistent-spectra
        (let [actual-spectra-freq (core/spectra-count (core/cyclic-subpeptide-masses "CANCER"))

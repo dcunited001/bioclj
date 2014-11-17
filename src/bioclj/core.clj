@@ -336,7 +336,6 @@
     1
     (/ (+ 1 (maths/sqrt (- (* 4 z) 7))) 2)))
 
-
 (defn linear-subpeptides
   "returns the set of possible subpeptides, given a linear peptide"
   [peptide]
@@ -404,7 +403,6 @@
         (range 0 (count peptide)))
       0)))
 
-
 ;; arg! the loss of parity when converting between amino's and masses is a bit frustrating
 ;; this algorithm should use floats, not integers!  with integers, theres 18 distinct amino masses.
 ;; or at least use the float*100, converted to integers, converting masses back to their floats when necessary
@@ -454,7 +452,7 @@
   "takes a list of peptides and expands it, returning a set of peptides,
   each containing one more amino acid than previous.  input should be a Vector of char-lists,
   not a Vector of strings"
-  [peptides]
+  [peptides & {:keys [alphabet] :or {alphabet int-mass-values} }]
   (let [n-threads 8
         concatfn (fn ([] []) ([x y] (concat x y)))]
     (r/fold 5 concatfn
@@ -465,7 +463,7 @@
                         concatfn
                         (fn [pvec2 peptide] (conj pvec2 (conj peptide amino-mass)))
                         peptides)))
-            int-mass-values)))
+            alphabet)))
 
 (defn spectra-count
   [spectra]
@@ -557,7 +555,6 @@
      (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] [[]])))
 
   ([n-highest round start-trim spectra last-peptides peptides]
-   (prn peptides)
    (if (empty? peptides)
      last-peptides
      (let [expanded-peptides (expand-peptides peptides)
@@ -587,3 +584,18 @@
        (reduce #(merge-into-leaderboard %1 [%2] (linear-subpeptide-masses %2) spectra) {})
        (trim-leaderboard n [])))
 ;; yup, it's correct
+
+(defn spectral-convolution
+  [spectra]
+  ;; i don't use for loops much, but holy $#@! they are cool in clojure
+  (sort (for [x spectra
+        y spectra
+        :let [dif (- x y)]
+        :when (> dif 0)]
+        ;(and (>= dif 57) (<= dif 200))] ;once again, the coursera algorithms are a lil lamer than they should be
+    dif)))
+
+(defn convolution-cyclopeptide-sequencing
+  [m n spectra]
+
+  )
