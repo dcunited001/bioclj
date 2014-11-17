@@ -552,9 +552,11 @@
 ;; ugh i really wish i was not copy-pasting this algorithm from above, but alas
 (defn leaderboard-cyclopeptide-sequencing
   ([n-highest spectra]
-   (leaderboard-cyclopeptide-sequencing n-highest spectra [[]] [[]]))
+   ;; pick a value for start-trim that's good for all peptide lengths
+   (let [start-trim (/ (maths/floor (inverse-num-cyclic-subpeptides (count spectra))) 5)]
+     (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] [[]])))
 
-  ([n-highest spectra last-peptides peptides]
+  ([n-highest round start-trim spectra last-peptides peptides]
    (prn peptides)
    (if (empty? peptides)
      last-peptides
@@ -569,8 +571,13 @@
                     (merge-into-leaderboard possible-peptides [pep] (linear-subpeptide-masses pep) spectra)
                     possible-peptides)))
               {})
-            (trim-leaderboard n-highest [])
-            (recur n-highest spectra peptides)
+            (trim-leaderboard
+              ;; make sure good answers don't get filtered out in the first few steps
+              (if (< (inc round) start-trim)
+                (* n-highest (- start-trim round))
+                n-highest)
+              [])
+            (recur n-highest (inc round) start-trim spectra peptides)
             )))))
 
 (defn leaderboard-trimming-algorithm-test
