@@ -552,9 +552,9 @@
   ([n-highest spectra {:keys [alphabet] :or {alphabet int-mass-values}}]
    ;; pick a value for start-trim that's good for all peptide lengths
    (let [start-trim (/ (maths/floor (inverse-num-cyclic-subpeptides (count spectra))) 5)]
-     (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] [[]] :alphabet alphabet)))
+     (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] alphabet [[]])))
 
-  ([n-highest round start-trim spectra last-peptides peptides & {:keys [alphabet] :or {alphabet int-mass-values}}]
+  ([n-highest round start-trim spectra last-peptides alphabet peptides]
    (if (empty? peptides)
      last-peptides
      (let [expanded-peptides (expand-peptides peptides :alphabet alphabet)
@@ -574,7 +574,7 @@
                 (* n-highest (- start-trim round))
                 n-highest)
               [])
-            (recur n-highest (inc round) start-trim spectra peptides {:alphabet alphabet})
+            (recur n-highest (inc round) start-trim spectra peptides alphabet)
             )))))
 
 (defn leaderboard-trimming-algorithm-test
@@ -606,12 +606,12 @@
 (defn convolution-cyclopeptide-sequencing
   [m n spectra]
   ;; just reusing the leaderboard algorithm because it's the same thing
-  (let [alphabeta (->> spectra
+  (let [alphabeta (->> (sort spectra)
                                 (spectral-convolution)
                                 (filter #(and (>= %1 57) (<= %1 200)))
                                 (frequencies)
                                 (inversemap-cat)
                                 (trim-leaderboard m []))]
-    (prn alphabeta)
     (leaderboard-cyclopeptide-sequencing n spectra { :alphabet alphabeta })
     ))
+;;seems to be returning very low peptide chains for some answers, scoring must be very low, amino acid selection may be wrong
