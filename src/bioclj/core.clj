@@ -549,19 +549,14 @@
   [possible-peptides peptide peptide-spectra spectra]
   (merge-with concat possible-peptides {(spectral-score peptide-spectra spectra) peptide}))
 
-(defn peptide-score-tuple
-  [peptide experimental-spectra]
-  {:peptide peptide :score (spectral-score (cyclic-subpeptide-masses peptide) experimental-spectra)})
-
 ;; ugh i really wish i was not copy-pasting this algorithm from above, but alas
 (defn leaderboard-cyclopeptide-sequencing
   ([n-highest spectra]
-   (let [n-aminos (inverse-num-cyclic-subpeptides (count spectra))]
-     (leaderboard-cyclopeptide-sequencing n-highest spectra n-aminos [[]])))
+   (leaderboard-cyclopeptide-sequencing n-highest spectra [[]] [[]]))
 
-  ([n-highest spectra n-aminos peptides]
-   (if (or (empty? peptides) (= n-aminos (count (first peptides))))
-     peptides
+  ([n-highest spectra last-peptides peptides]
+   (if (empty? peptides)
+     last-peptides
      (let [expanded-peptides (expand-peptides peptides)
            parent-mass (last spectra)
            freq-spectra (frequencies spectra)]
@@ -571,14 +566,22 @@
               (fn [possible-peptides pep]
                 (let [peptide-mass (apply + pep)]
                   (if (= peptide-mass parent-mass)
-                    (let [peptide-spectra (cyclic-subpeptide-masses pep)]
+                    (let [peptide-spectra (linear-subpeptide-masses pep)]
                       (if (= peptide-spectra spectra)
-                        (merge-into-leaderboard possible-peptides pep peptide-spectra spectra)
+                        (merge-into-leaderboard possible-peptides [pep] peptide-spectra spectra)
                         possible-peptides))
                     (if (and (< peptide-mass parent-mass) (consistent-spectra pep freq-spectra))
-                      (merge-into-leaderboard possible-peptides pep (cyclic-subpeptide-masses pep) spectra)
+                      (merge-into-leaderboard possible-peptides [pep] (linear-subpeptide-masses pep) spectra)
                       possible-peptides))))
               {})
-            (recur n-highest spectra n-aminos)
+            (trim-leaderboard n-highest [])
+            (recur n-highest spectra peptides)
             )))))
 
+(defn leaderboard-trimming-algorithm-test
+  "testing to make sure i have my leaderboard algorithm set up properly, need to change up the parameters though"
+  [peptides n spectra]
+  (->> peptides
+       (reduce #(merge-into-leaderboard %1 [%2] (linear-subpeptide-masses %2) spectra) {})
+       (trim-leaderboard n [])))
+;; yup, it's correct
