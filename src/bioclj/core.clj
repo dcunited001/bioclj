@@ -554,7 +554,7 @@
    (let [start-trim (/ (maths/floor (inverse-num-cyclic-subpeptides (count spectra))) 5)]
      (leaderboard-cyclopeptide-sequencing n-highest 0 start-trim spectra [[]] [[]])))
 
-  ([n-highest round start-trim spectra last-peptides peptides]
+  ([n-highest round start-trim spectra last-peptides peptides & {:keys [alphabet] :or {alphabet int-mass-values}}]
    (if (empty? peptides)
      last-peptides
      (let [expanded-peptides (expand-peptides peptides)
@@ -574,7 +574,7 @@
                 (* n-highest (- start-trim round))
                 n-highest)
               [])
-            (recur n-highest (inc round) start-trim spectra peptides)
+            (recur n-highest (inc round) start-trim spectra peptides {:alphabet alphabet})
             )))))
 
 (defn leaderboard-trimming-algorithm-test
@@ -595,7 +595,12 @@
         ;(and (>= dif 57) (<= dif 200))] ;once again, the coursera algorithms are a lil lamer than they should be
     dif)))
 
-(defn convolution-cyclopeptide-sequencing
-  [m n spectra]
-
-  )
+(defn inversemap-cat
+  "Y SO .. HARD? ..."
+  [m]
+  (into
+    {}
+    (reduce
+      (fn [h [k v]]
+        (merge-with concat h [v (list k)]))
+      m)))
