@@ -62,11 +62,25 @@
                (core/hamming-distance s1 s2) => 1
                (core/hamming-distance s1 s1 :d 0) => 0
                (core/hamming-distance s1 s2 :d 0) => 1
-               (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1
-               )))
+               (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1)))
 
-(facts neighborhood-recur)
-;; why the $#@! is this wrong??!/!/!/!?? lulz
+(facts neighborhood-recur
+       (let [s1 '(\A \A)
+             n1 (sort '("AC" "AT" "AG" "CA" "TA" "GA" "AA"))
+             s2 '(\A \A \A)
+             n2 (sort '("CAA" "TAA" "GAA" "AAA" "AGA" "ACA" "ATA" "AAG" "AAT" "AAC"))]
+         (fact "generates a matching neighborhood of an ACGT string"
+               (sort (map (partial apply str) (core/neighborhood-recur s1 1))) => n1
+               (sort (map (partial apply str) (core/neighborhood-recur s2 1))) => n2)
+         (fact "generates a neighborhood with the appropriate counts"
+               (count (core/neighborhood-recur s1 1)) => 7
+               (count (core/neighborhood-recur s1 2)) => 16
+               (count (core/neighborhood-recur s2 1)) => 10
+               (count (core/neighborhood-recur s2 2)) => 37
+               (count (core/neighborhood-recur s2 3)) => 64)
+         (fact "neighborhoods include the input string itself"
+               (.contains (core/neighborhood-recur s1 1) s1) => true
+               (.contains (core/neighborhood-recur s2 1) s2) => true)))
 
 (facts transcribe-rna
        (fact "transcribes RNA into a peptide chain"
@@ -152,12 +166,12 @@
              expected (sort '(0 113 129 147 163 276 276 310 423 439 552))
              actual (core/linear-subpeptide-masses peptide)
              actual-max (apply max actual)]
-       (fact "maps the mass sums for each linear subpeptide"
+         (fact "maps the mass sums for each linear subpeptide"
                (count actual) => 11
                (sort actual) => expected
                (count (filter #(= %1 actual-max) actual)) => 1)
-       (fact "also works when run on a collection of integers, though excludes possibilities with duplicate amino masses"
-             (core/linear-subpeptide-masses peptide-masses) => expected)))
+         (fact "also works when run on a collection of integers, though excludes possibilities with duplicate amino masses"
+               (core/linear-subpeptide-masses peptide-masses) => expected)))
 
 (facts cyclic-subpeptide-masses
        (let [peptide "LYFE"
