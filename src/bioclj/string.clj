@@ -1,5 +1,4 @@
 (ns bioclj.string
-  (:use [gloss core io])
   (:require [clojure.core.reducers :as r]
             [clj-biosequence.core :as bio.core]
             [clj-biosequence.alphabet :as bio.alpha]
@@ -15,9 +14,6 @@
              \G 2 \g 2 103 2 71 2
              \T 3 \t 3 116 3 84 3
              \U 3 \u 3 117 3 85 3})
-
-
-(defcodec acgt-codec (repeated :int64-be :prefix :none))
 
 (def two-multiples (map #(* 2 %1) (range 32)))
 (def acgt-bitshifts (map #(long (maths/expt 2 %1)) two-multiples))
