@@ -57,11 +57,12 @@
 
 (defn acgt-from-64b
   "takes a vector of longs and returns the original ACGT string"
-  [s])
+  [s]
+  )
 
 (defn format64
-  [big-int]
-  (pp/cl-format nil "2r~64,'0',B" big-int))
+  [long]
+  (pp/cl-format nil "2r~64,'0',B" long))
 
 (defn byter-2
   "converts a string of ACGT to a 2 bit byte array"
