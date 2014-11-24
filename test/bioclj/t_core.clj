@@ -53,6 +53,7 @@
                (core/reverse-complement strand) => "AGGCTTTACTCCGA"
                (core/reverse-complement strand2) => "AGGCTTTACTCCGA")))
 
+;;TODO: rewrite hamming-distance to use 64bit integers
 (facts hamming-distance
        (fact "returns the number of mismatches in two equally sized strings"
              (let [s1 "ACTG"
@@ -64,6 +65,7 @@
                (core/hamming-distance s1 s2 :d 0) => 1
                (core/hamming-distance s1 s1 :d 0 :dmax 0) => 1)))
 
+;;TODO: incorrect neighborhoods for longer strings... correct count of strings, but many exceed the hamming distance
 (facts neighborhood-recur
        (let [s1 '(\A \A)
              n1 (sort '("AC" "AT" "AG" "CA" "TA" "GA" "AA"))

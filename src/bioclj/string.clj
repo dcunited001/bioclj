@@ -8,7 +8,7 @@
 ;; TODO: look into process builder for implementing library with GPU calls.
 ;; TODO: check out kibit
 
-(def agct-2 {97 0
+(def acgt-2 {97 0
              65 0
              99 1
              67 1
@@ -17,10 +17,18 @@
              116 3
              84 3})
 
+(defcodec acgt-codec (repeated :int64-be :prefix :none))
+
+(defn acgt-to-64b
+  [s])
+
+(defn acgt-from-64b
+  [s])
+
 (defn byter-2
   "converts a string of ACGT to a 2 bit byte array"
   [s]
-  (bytes (byte-array (map (comp byte agct-2 int) s))))
+  (bytes (byte-array (map (comp byte acgt-2 int) s))))
 
 ;; for 2bit inputs a & b
 ;; 1) xor a,b => x

@@ -1,11 +1,13 @@
 (ns bioclj.core
-  (:use [criterium.core])
+  (:use [criterium.core]
+        [bioclj.string]
+        [bioclj.motif])
   (:require [clojure.math.combinatorics :as com]
             [clojure.core.reducers :as r]
             [clj-biosequence.core :as bio.core]
             [clj-biosequence.alphabet :as bio.alpha]
-            [clojure.math.numeric-tower :as maths]
-            ))
+            [clojure.math.numeric-tower :as maths]))
+
 
 (defn now [] (java.util.Date.))
 
@@ -102,7 +104,7 @@
   "inspects text, running a fn with all substrings of length k
   f takes 3 params [hash index substring]"
   [f k text]
-  (persistent!
+      (persistent!
     (let [idxstop (- (count text) k)]
       (reduce
         #(let [kmer (subs text %2 (+ %2 k))]
