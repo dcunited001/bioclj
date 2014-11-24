@@ -12,8 +12,9 @@
 
 (facts "actg-codec"
        (let [acgt-16 (gloss.io/decode acgt-codec (read-bytes "test/data/ACGTx16.bin"))
-             acgt-1 (gloss.io/decode acgt-codec (read-bytes "test/data/ACGTx1.bin"))
-             acgt-9 (gloss.io/decode acgt-codec (read-bytes "test/data/ACGTx9.bin"))]
+             ;acgt-1 (gloss.io/decode acgt-codec (read-bytes "test/data/ACGTx1.bin"))
+             ;acgt-9 (gloss.io/decode acgt-codec (read-bytes "test/data/ACGTx9.bin"))
+             ]
 
          (fact "can read bytes when num bytes % 8 = 0")
          (fact "can read bytes when num bytes % 8 != 0")
