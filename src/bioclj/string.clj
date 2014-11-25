@@ -14,9 +14,14 @@
              \G 2 \g 2 103 2 71 2
              \T 3 \t 3 116 3 84 3
              \U 3 \u 3 117 3 85 3})
+(def b2-to-acgt {0 \A
+                 1 \C
+                 2 \G
+                 3 \T})
 
 (def two-multiples (map #(* 2 %1) (range 32)))
 (def acgt-bitshifts (map #(long (maths/expt 2 %1)) two-multiples))
+(def acgt-index-bitmasks (map #(bit-flip (bit-flip 0 %1) (inc %1)) (reverse two-multiples)))
 (def acgt-lbitmasks (reduce #(conj %1 (bit-or (last %1)
                                               (bit-flip (bit-flip 0 %2) (inc %2))))
                             [(bit-flip (bit-flip 0 62) 63)]
@@ -55,6 +60,22 @@
        (recur (conj longs b64) rest-bases)
        (conj longs b64)))))
 
+(defn acgt-64b-to-str
+  [k long]
+  (reduce #(conj %1 (b2-to-acgt (bit-and 3 (bit-shift-right long (- 62 %2)))))
+          []
+          (take k two-multiples)))
+
+(defn acgt-from-64b
+  "takes a vector of longs and returns the original ACGT string"
+  ([k longs] (apply str (acgt-from-64b k longs '())))
+  ([k longs chr-list]
+   (if (> k 0)
+     (let [this-k (or (and (> k 32) 32) k)
+           chr32 (acgt-64b-to-str this-k (first longs))]
+       (recur (- k 32) (rest longs) (concat chr-list chr32)))
+     chr-list)))
+
 ;; for 2bit inputs a & b
 ;; 1) xor a,b => x
 ;; 2) (dup x)*2 => y
@@ -68,9 +89,9 @@
   (let [x (bit-xor a b)]
     (. Long bitCount
        (bit-and (bit-or x
-                     (bit-and (bit-shift-left x 1)
-                              hamming-b64-b2-magic-xor))
-             hamming-b64-b2-magic-xor))))
+                        (bit-and (bit-shift-left x 1)
+                                 hamming-b64-b2-magic-xor))
+                hamming-b64-b2-magic-xor))))
 
 ;;TODO: implement hamming-weight with bit count
 ;; either use: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
@@ -80,13 +101,6 @@
 ;; TODO: b64 Levenschtien Distance? ........
 ;; .. i think levenschtein is more useful with amino seqs anyways,
 ;; nucleotide deletions & additions cause terrible things to happen
-
-
-(defn acgt-from-64b
-  "takes a vector of longs and returns the original ACGT string"
-  [s]
-
-  )
 
 (defn format64
   [long]
