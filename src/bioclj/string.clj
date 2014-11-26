@@ -67,17 +67,16 @@
           []
           (take k two-multiples)))
 
-
 (defn acgt-from-64b
   "takes a vector of longs and returns the original ACGT string"
-  ([k longs] (acgt-from-64b k longs '()))
+  ([k longs] (acgt-from-64b k longs []))
   ([k longs chr-list]
+
    (if (> k 0)
      (let [this-k (or (and (> k 32) 32) k)
            chr32 (acgt-64b-to-str this-k (first longs))]
-       (recur (- k 32) (rest longs) (into [] (concat chr-list chr32))))
+       (recur (- k 32) (rest longs) (apply (partial conj chr-list) chr32)))
      chr-list)))
-
 
 (defn acgt-str-from-64b
   [k longs] (apply str (acgt-from-64b k longs '())))
