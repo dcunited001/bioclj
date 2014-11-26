@@ -38,6 +38,7 @@
 ;;TODO: implement another hamming-b64 for comparing 2 Acgt64's and automatically identifying differing regions
 
 (defrecord Acgt64 [L b64]
+  ;;TODO: add the original string to the fields to avoid unnecessary conversions
   VariableBitOps
   (sub64b [k i] []))
 
@@ -66,15 +67,25 @@
           []
           (take k two-multiples)))
 
+
 (defn acgt-from-64b
   "takes a vector of longs and returns the original ACGT string"
-  ([k longs] (apply str (acgt-from-64b k longs '())))
+  ([k longs] (acgt-from-64b k longs '()))
   ([k longs chr-list]
    (if (> k 0)
      (let [this-k (or (and (> k 32) 32) k)
            chr32 (acgt-64b-to-str this-k (first longs))]
-       (recur (- k 32) (rest longs) (concat chr-list chr32)))
+       (recur (- k 32) (rest longs) (into [] (concat chr-list chr32))))
      chr-list)))
+
+
+(defn acgt-str-from-64b
+  [k longs] (apply str (acgt-from-64b k longs '())))
+
+(defn acgt-truncate-to-k
+  "truncates a 64b long to a using the acgt-lbitmasks"
+  [k a]
+  (bit-and a (nth acgt-lbitmasks (dec k))))
 
 ;; for 2bit inputs a & b
 ;; 1) xor a,b => x
@@ -82,16 +93,18 @@
 ;; 3) init array of 10101010 bytes => z
 ;; 4) (y & z) | x => hamming distance, for 2 bits
 ;; 5) run hammingweight to get distance (00111100 => 4 / 2 => 2)
-(def hamming-b64-b2-magic-xor (reduce #(bit-or %1 (bit-flip 0 (inc %2))) 0 two-multiples))
-(defn hamming-b64
+(def hamming-64b-b2-magic-xor (reduce #(bit-or %1 (bit-flip 0 (inc %2))) 0 two-multiples))
+(defn hamming-64b
   "returns the hamming-distance between two b64 encoded nucleotide sequences"
-  [a b]
+  ([a b]
   (let [x (bit-xor a b)]
     (. Long bitCount
        (bit-and (bit-or x
                         (bit-and (bit-shift-left x 1)
-                                 hamming-b64-b2-magic-xor))
-                hamming-b64-b2-magic-xor))))
+                                 hamming-64b-b2-magic-xor))
+                hamming-64b-b2-magic-xor))))
+  ([k a b]
+   (hamming-64b (acgt-truncate-to-k k a) (acgt-truncate-to-k k b))))
 
 ;;TODO: implement hamming-weight with bit count
 ;; either use: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
@@ -106,17 +119,14 @@
   [long]
   (pp/cl-format nil "2r~64,'0',B" long))
 
-(defn byter-2
-  "converts a string of ACGT to a 2 bit byte array"
-  [s]
-  (bytes (byte-array (map (comp byte acgt-2 int) s))))
-
-(defn byter-6
-  "converts a string of aminos to a 6 bit byte array"
-  [s])
-
+;; TODO: hamming distance for 6bit amino's
 ;; use similar process to above, but recursive & repeat 4 times
 ;; end up with annoying 6b array 000000111111111111000000 => 0110
 ;; .. is this even worthwhile to implement?? .. 10 amino's per 64b int plus 4-bits .. hmmm
 ;; would the increase in performance from 8b => 6b offset the overhead?
 ;; how to include different alphabets?
+
+(defn neighborhood-64b-acgt
+  "recursively generates the actg neighborhood of a 64b encoded actg string of up to 32 chars"
+  ([k d long] [])
+  )
