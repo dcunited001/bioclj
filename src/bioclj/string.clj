@@ -44,8 +44,11 @@
 
 (defrecord Acgt64Kmers [k b64]
   VariableBitOps
-  ;; basically
   (sub64b [k i] []))
+
+(defrecord Acgt64bNeighborhood [k d orig-seq b64]
+
+  )
 
 (defn acgt-str-to-64b
   "converts up to 32 bases into a 64-bit long"
@@ -168,7 +171,7 @@
   ([k d lng]
     (if (<= d 0)
       [lng]
-      (neighborhood-acgt-64b k d lng k [])))
+      (Acgt64bNeighborhood. k d lng (neighborhood-acgt-64b k d lng k []))))
   ([k d lng pos longs]
     (let [nucleotides (nth neighborhood-64b-shifted-acgt (dec pos))]
       (if (= pos 1)
@@ -189,7 +192,6 @@
                             []
                             subhood)))
                  nucleotides)))))))
-
 
 ;(->> foo
 ;     (map (partial acgt-64b-to-str 3))

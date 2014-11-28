@@ -37,17 +37,17 @@
              s2 (acgt-str-to-64b "AAA")
              n2 (sort (map acgt-str-to-64b '("CAA" "TAA" "GAA" "AAA" "AGA" "ACA" "ATA" "AAG" "AAT" "AAC")))]
          (fact "generates a matching neighborhood of an ACGT string"
-               (sort (neighborhood-acgt-64b 2 1 s1)) => n1
-               (sort (neighborhood-acgt-64b 3 1 s2)) => n2)
+               (sort (:b64 (neighborhood-acgt-64b 2 1 s1))) => n1
+               (sort (:b64 (neighborhood-acgt-64b 3 1 s2))) => n2)
          (fact "generates a neighborhood with the appropriate counts"
-               (count (neighborhood-acgt-64b 2 1 s1)) => 7
-               (count (neighborhood-acgt-64b 2 2 s1)) => 16
-               (count (neighborhood-acgt-64b 3 1 s2)) => 10
-               (count (neighborhood-acgt-64b 3 2 s2)) => 37
-               (count (neighborhood-acgt-64b 3 3 s2)) => 64)
+               (count (:b64 (neighborhood-acgt-64b 2 1 s1))) => 7
+               (count (:b64 (neighborhood-acgt-64b 2 2 s1))) => 16
+               (count (:b64 (neighborhood-acgt-64b 3 1 s2))) => 10
+               (count (:b64 (neighborhood-acgt-64b 3 2 s2))) => 37
+               (count (:b64 (neighborhood-acgt-64b 3 3 s2))) => 64)
          (fact "neighborhoods include the input string itself"
-               (.contains (neighborhood-acgt-64b 2 1 s1) s1) => true
-               (.contains (neighborhood-acgt-64b 3 2 s2) s2) => true)))
+               (.contains (:b64 (neighborhood-acgt-64b 2 1 s1)) s1) => true
+               (.contains (:b64 (neighborhood-acgt-64b 3 2 s2)) s2) => true)))
 
 ;(count  (neighborhood-acgt-64b 32 3 (reduce-acgt-64b "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")))
 ;=> 138481 @ 00:01.000
