@@ -49,4 +49,11 @@
                (.contains (neighborhood-acgt-64b 2 1 s1) s1) => true
                (.contains (neighborhood-acgt-64b 3 2 s2) s2) => true)))
 
-
+;(count  (neighborhood-acgt-64b 32 3 (reduce-acgt-64b "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")))
+;=> 138481 @ 00:01.000
+;(count  (neighborhood-acgt-64b 32 4 (reduce-acgt-64b "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")))
+;=> 3051241 @ 00:12.000
+;(count  (neighborhood-acgt-64b 32 5 (reduce-acgt-64b "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")))
+;=> 51985609 @ 05:00.000
+;; not bad
+;; if i just had a GPU method for filtering nils from lists, i could get 32,5 down to seconds

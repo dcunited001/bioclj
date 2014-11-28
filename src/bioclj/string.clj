@@ -175,20 +175,20 @@
         nucleotides
         (let [sub (bit-and lng (nth (neighborhood-64b-masks (dec pos)) (dec pos)))
               subhood (neighborhood-acgt-64b k d sub (dec pos) longs)]
-          (vec (r/fold
-            (fn combinef ([] []) ([x y] (concat x y)))
-            (fn [a n]
-              (apply (partial conj a)
-                     (reduce
-                       (fn [aa s]
-                         (let [sn (bit-xor s n)
-                               hd (hamming-64b k sub sn)]
-                           (if (<= hd d)
-                             (conj aa sn)
-                             aa)))
-                       []
-                       subhood)))
-            nucleotides)))))))
+          (vec (r/fold 4
+                 (fn combinef ([] []) ([x y] (concat x y)))
+                 (fn [a n]
+                   (apply (partial conj a)
+                          (reduce
+                            (fn [aa s]
+                              (let [sn (bit-xor s n)
+                                    hd (hamming-64b k sub sn)]
+                                (if (<= hd d)
+                                  (conj aa sn)
+                                  aa)))
+                            []
+                            subhood)))
+                 nucleotides)))))))
 
 
 ;(->> foo
