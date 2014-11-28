@@ -37,12 +37,17 @@
 ;;TODO: include another method that outputs every sub for length k as 64b ints
 ;;TODO: implement another hamming-b64 for comparing 2 Acgt64's and automatically identifying differing regions
 
-(defrecord Acgt64 [L b64]
+(defrecord Acgt64Contiguous [L b64]
   ;;TODO: add the original string to the fields to avoid unnecessary conversions
   VariableBitOps
   (sub64b [k i] []))
 
-(defn reduce-acgt-64b
+(defrecord Acgt64Kmers [k b64]
+  VariableBitOps
+  ;; basically
+  (sub64b [k i] []))
+
+(defn acgt-str-to-64b
   "converts up to 32 bases into a 64-bit long"
   [bases]
   (reduce
@@ -55,11 +60,11 @@
   ;; appends the original count of bases to the front of the vector
   ([s] (apply (partial conj [(count s)]) (acgt-to-64b [] s)))
   ([longs s]
-   (let [b64 (reduce-acgt-64b (take 32 s))
-         rest-bases (nthrest s 32)]
-     (if (not-empty rest-bases)
-       (recur (conj longs b64) rest-bases)
-       (conj longs b64)))))
+    (let [b64 (acgt-str-to-64b (take 32 s))
+          rest-bases (nthrest s 32)]
+      (if (not-empty rest-bases)
+        (recur (conj longs b64) rest-bases)
+        (conj longs b64)))))
 
 (defn acgt-64b-to-str
   [k long]
@@ -72,11 +77,11 @@
   ([k longs] (acgt-from-64b k longs []))
   ([k longs chr-list]
 
-   (if (> k 0)
-     (let [this-k (or (and (> k 32) 32) k)
-           chr32 (acgt-64b-to-str this-k (first longs))]
-       (recur (- k 32) (rest longs) (apply (partial conj chr-list) chr32)))
-     chr-list)))
+    (if (> k 0)
+      (let [this-k (or (and (> k 32) 32) k)
+            chr32 (acgt-64b-to-str this-k (first longs))]
+        (recur (- k 32) (rest longs) (apply (partial conj chr-list) chr32)))
+      chr-list)))
 
 (defn acgt-str-from-64b
   [k longs] (apply str (acgt-from-64b k longs '())))
@@ -96,14 +101,14 @@
 (defn hamming-64b
   "returns the hamming-distance between two b64 encoded nucleotide sequences"
   ([a b]
-  (let [x (bit-xor a b)]
-    (. Long bitCount
-       (bit-and (bit-or x
-                        (bit-and (bit-shift-left x 1)
-                                 hamming-64b-b2-magic-xor))
-                hamming-64b-b2-magic-xor))))
+    (let [x (bit-xor a b)]
+      (. Long bitCount
+         (bit-and (bit-or x
+                          (bit-and (bit-shift-left x 1)
+                                   hamming-64b-b2-magic-xor))
+                  hamming-64b-b2-magic-xor))))
   ([k a b]
-   (hamming-64b (acgt-truncate-to-k k a) (acgt-truncate-to-k k b))))
+    (hamming-64b (acgt-truncate-to-k k a) (acgt-truncate-to-k k b))))
 
 ;;TODO: implement hamming-weight with bit count
 ;; either use: http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
@@ -116,7 +121,10 @@
 
 (defn format64
   [long]
-  (pp/cl-format nil "2r~64,'0',B" long))
+  (if (= long -9223372036854775808)
+    ;; on 64b minimum, cl-format breaks
+    (str "-" (pp/cl-format nil "~63,'0',B" 0))
+    (pp/cl-format nil "~64,'0',B" long)))
 
 ;; TODO: hamming distance for 6bit amino's
 ;; use similar process to above, but recursive & repeat 4 times
@@ -125,7 +133,83 @@
 ;; would the increase in performance from 8b => 6b offset the overhead?
 ;; how to include different alphabets?
 
-(defn neighborhood-64b-acgt
+;; 11......
+;; 0011....
+;; 1111....
+;; 000011..
+;; 001111..
+;; 111111..
+;; generates a map of bitmasks to use for the neighborhood algorithm
+(def neighborhood-64b-masks
+  (reduce
+    (fn [h i]
+      (let [end (- 62 (* i 2))]
+        (assoc h i
+               (reduce
+                 (fn [a k]
+                   (let [start (+ end k 2)]
+                     (conj a (bit-flip (bit-flip (last a) start) (inc start)))))
+                 [(bit-flip (bit-flip 0 end) (inc end))]
+                 (take i two-multiples)))))
+    {}
+    (range 32)))
+
+;; contains the values acgt, shifted for each index
+(def neighborhood-64b-shifted-acgt
+  (vec (map
+         (fn [pos]
+           (vec (map #(bit-shift-left %1 (- 62 (* 2 pos))) [0 1 2 3])))
+         (range 32))))
+
+;;might be possible to process this 8+ bits at a time, truncate the results & remove dupes.. hmmmmm
+;; if so, then that algorithm might be worth parallelizing with GPU
+(defn neighborhood-acgt-64b
   "recursively generates the actg neighborhood of a 64b encoded actg string of up to 32 chars"
-  ([k d long] [])
-  )
+  ([k d lng]
+    (if (<= d 0)
+      [lng]
+      (neighborhood-acgt-64b k d lng k [])))
+  ([k d lng pos longs]
+    (let [nucleotides (nth neighborhood-64b-shifted-acgt (dec pos))]
+      (if (= pos 1)
+        nucleotides
+        (let [sub (bit-and lng (nth (neighborhood-64b-masks (dec pos)) (dec pos)))
+              subhood (neighborhood-acgt-64b k d sub (dec pos) longs)]
+          (vec (r/fold
+            (fn combinef ([] []) ([x y] (concat x y)))
+            (fn [a n]
+              (apply (partial conj a)
+                     (reduce
+                       (fn [aa s]
+                         (let [sn (bit-xor s n)
+                               hd (hamming-64b k sub sn)]
+                           (if (<= hd d)
+                             (conj aa sn)
+                             aa)))
+                       []
+                       subhood)))
+            nucleotides)))))))
+
+
+;(->> foo
+;     (map (partial acgt-64b-to-str 3))
+;     (map (partial apply str))
+;     (clojure.string/join "\n"))
+
+;;TODO: figure out why neighborhood-recur isn't correct
+;(defn neighborhood-recur
+;  [s d]
+;  ;; seems to be no way to use recur here, not that it would make much of a difference in this alg
+;  (if (> d 0)
+;    (if (> (count s) 1)
+;      (let [sub (rest s)
+;            subhood (neighborhood-recur sub d)]
+;        (reduce
+;          (fn [thishood t]
+;            (if (< (hamming-distance sub t :dmax (inc d)) d)
+;              (apply conj thishood (map #(conj t %1) nucleotides))
+;              (conj thishood (conj t (first sub)))))
+;          '()
+;          subhood))
+;      (map list nucleotides))
+;    s))
