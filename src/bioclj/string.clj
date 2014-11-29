@@ -37,18 +37,14 @@
 ;;TODO: include another method that outputs every sub for length k as 64b ints
 ;;TODO: implement another hamming-b64 for comparing 2 Acgt64's and automatically identifying differing regions
 
-(defrecord Acgt64Contiguous [L b64]
+(defrecord Acgt64Contiguous [L orig-seq b64]
   ;;TODO: add the original string to the fields to avoid unnecessary conversions
   VariableBitOps
   (sub64b [k i] []))
 
-(defrecord Acgt64Kmers [k b64]
+(defrecord Acgt64Kmers [k orig-seq b64]
   VariableBitOps
   (sub64b [k i] []))
-
-(defrecord Acgt64bNeighborhood [k d orig-seq b64]
-
-  )
 
 (defn acgt-str-to-64b
   "converts up to 32 bases into a 64-bit long"
@@ -136,6 +132,17 @@
 ;; would the increase in performance from 8b => 6b offset the overhead?
 ;; how to include different alphabets?
 
+(defprotocol NeighborOps
+  (neighbors-to-str [_] "converts the list of longs into strings")
+  (neighbors-one-str [_] "formats output to be submitted"))
+
+(defrecord Acgt64bNeighborhood [k d orig-seq b64]
+  NeighborOps
+  (neighbors-to-str [this] (->> b64
+                             (map (partial acgt-64b-to-str k))
+                             (map (partial apply str))))
+  (neighbors-one-str [this] (println (clojure.string/join "\n" (neighbors-to-str this)))))
+
 ;; 11......
 ;; 0011....
 ;; 1111....
@@ -192,26 +199,3 @@
                             []
                             subhood)))
                  nucleotides)))))))
-
-;(->> foo
-;     (map (partial acgt-64b-to-str 3))
-;     (map (partial apply str))
-;     (clojure.string/join "\n"))
-
-;;TODO: figure out why neighborhood-recur isn't correct
-;(defn neighborhood-recur
-;  [s d]
-;  ;; seems to be no way to use recur here, not that it would make much of a difference in this alg
-;  (if (> d 0)
-;    (if (> (count s) 1)
-;      (let [sub (rest s)
-;            subhood (neighborhood-recur sub d)]
-;        (reduce
-;          (fn [thishood t]
-;            (if (< (hamming-distance sub t :dmax (inc d)) d)
-;              (apply conj thishood (map #(conj t %1) nucleotides))
-;              (conj thishood (conj t (first sub)))))
-;          '()
-;          subhood))
-;      (map list nucleotides))
-;    s))
