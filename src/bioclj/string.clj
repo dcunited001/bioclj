@@ -93,6 +93,23 @@
   [k a]
   (bit-and a (nth acgt-lbitmasks (dec k))))
 
+(defrecord Acgt64Kmers [k orig-seq b64]
+  VariableBitOps
+  (sub64b [k i] []))
+
+(defn acgt-get-64b-kmers
+  [k dna]
+  (Acgt64Kmers. k
+                dna
+                (let [idxstop (- (count dna) k)]
+                  (reduce
+                    #(let [next-nucleotide (acgt-2 (get dna (+ %2 (dec k))))
+                           shifted-nucleotide (nth (acgt-64b-shifted-nucleotides (dec k)) next-nucleotide)
+                           kmer (bit-or (bit-shift-left (last %1) 2) shifted-nucleotide)]
+                      (conj %1 kmer))
+                    [(acgt-str-to-64b (subs dna 0 k))]
+                    (range 1 (inc idxstop))))))
+
 ;; for 2bit inputs a & b
 ;; 1) xor a,b => x
 ;; 2) (dup x)*2 => y
@@ -176,22 +193,43 @@
       [lng]
       (Acgt64bNeighborhood. k d lng (neighborhood-acgt-64b k d lng k []))))
   ([k d lng pos longs]
-    (let [nucleotides (nth neighborhood-64b-shifted-acgt (dec pos))]
+    (let [nucleotides (nth acgt-64b-shifted-nucleotides (dec pos))]
       (if (= pos 1)
         nucleotides
         (let [sub (bit-and lng (nth (neighborhood-64b-masks (dec pos)) (dec pos)))
               subhood (neighborhood-acgt-64b k d sub (dec pos) longs)]
           (vec (r/fold 4
-                 (fn combinef ([] []) ([x y] (concat x y)))
-                 (fn [a n]
-                   (apply (partial conj a)
-                          (reduce
-                            (fn [aa s]
-                              (let [sn (bit-xor s n)
-                                    hd (hamming-64b k sub sn)]
-                                (if (<= hd d)
-                                  (conj aa sn)
-                                  aa)))
-                            []
-                            subhood)))
-                 nucleotides)))))))
+                       (fn combinef ([] []) ([x y] (concat x y)))
+                       (fn [a n]
+                         (apply (partial conj a)
+                                (reduce
+                                  (fn [aa s]
+                                    (let [sn (bit-xor s n)
+                                          hd (hamming-64b k sub sn)]
+                                      (if (<= hd d)
+                                        (conj aa sn)
+                                        aa)))
+                                  []
+                                  subhood)))
+                       nucleotides)))))))
+
+(defn neighborhood-transform
+  "given a base neighborhood for k & d, transforms to the neighborhood for kmer"
+  [base-hood kmer])
+
+(def neighbor-transform-magic-numbers
+  {:left  hamming-64b-b2-magic-xor
+   :right (bit-not hamming-64b-b2-magic-xor)})
+
+(defn neighbor-transform
+  "given a kmer and the base-neighborhood neighbor (nbor), performs a kind of 2-bit addition to transform that neighbor to the neighborhood for kmer"
+  [kmer nbor]
+  (let [el-magic (:left neighbor-transform-magic-numbers)
+        r-magic (:right neighbor-transform-magic-numbers)
+        x (+ (bit-and kmer r-magic)
+             (bit-and nbor r-magic))
+        y (+ (bit-and kmer el-magic)
+             (bit-and nbor el-magic))
+        z (bit-xor x y)]
+    (bit-or (bit-and x r-magic)
+            (bit-and z el-magic))))
