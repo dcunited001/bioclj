@@ -31,6 +31,13 @@
                             [(bit-flip (bit-flip 0 0) 1)]
                             (nthrest two-multiples 1)))
 
+;; contains the values acgt, shifted for each index
+(def acgt-64b-shifted-nucleotides
+  (vec (map
+         (fn [pos]
+           (vec (map #(bit-shift-left %1 (- 62 (* 2 pos))) [0 1 2 3])))
+         (range 32))))
+
 ;given a length and a vector of 64b longs, creates a record that represents a ACGT sequence
 (defprotocol VariableBitOps
   (sub64b [k i] "return the i'th element of k length in a 64b encoded sequence as a 64b int"))
@@ -39,10 +46,6 @@
 
 (defrecord Acgt64Contiguous [L orig-seq b64]
   ;;TODO: add the original string to the fields to avoid unnecessary conversions
-  VariableBitOps
-  (sub64b [k i] []))
-
-(defrecord Acgt64Kmers [k orig-seq b64]
   VariableBitOps
   (sub64b [k i] []))
 
@@ -139,8 +142,8 @@
 (defrecord Acgt64bNeighborhood [k d orig-seq b64]
   NeighborOps
   (neighbors-to-str [this] (->> b64
-                             (map (partial acgt-64b-to-str k))
-                             (map (partial apply str))))
+                                (map (partial acgt-64b-to-str k))
+                                (map (partial apply str))))
   (neighbors-one-str [this] (println (clojure.string/join "\n" (neighbors-to-str this)))))
 
 ;; 11......
@@ -163,13 +166,6 @@
                  (take i two-multiples)))))
     {}
     (range 32)))
-
-;; contains the values acgt, shifted for each index
-(def neighborhood-64b-shifted-acgt
-  (vec (map
-         (fn [pos]
-           (vec (map #(bit-shift-left %1 (- 62 (* 2 pos))) [0 1 2 3])))
-         (range 32))))
 
 ;;might be possible to process this 8+ bits at a time, truncate the results & remove dupes.. hmmmmm
 ;; if so, then that algorithm might be worth parallelizing with GPU
