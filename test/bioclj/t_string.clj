@@ -78,7 +78,13 @@
                (nth (:b64 acgt) 8) => g
                (nth (:b64 acgt) 12) => t)))
 
-(facts "neighborhood-transform")
+(facts "neighborhood-transform"
+       (let [kmer (acgt-str-to-64b "ACGTACGT")
+             base-hood (base-neighborhood-acgt 16 4)
+             another-hood (neighborhood-acgt-64b 16 4 kmer)]
+         ;; generates two sets with ~165,000 members, then sorts
+         (fact "produces equivalent neighborhood, though not sorted in the same order"
+               (sort (:b64 another-hood)) => (sort (:b64 (neighborhood-transform base-hood kmer))))))
 
 (facts "neighbor-transform"
        (fact "produces a neighbor, shifted from the base neighborhood to this neighborhood"
@@ -86,3 +92,4 @@
                    nbor 2r00000000010101011010101011111111
                    ansr 2r00011011011011001011000111000110]
                (neighbor-transform kmer nbor) => ansr)))
+

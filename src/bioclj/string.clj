@@ -213,9 +213,19 @@
                                   subhood)))
                        nucleotides)))))))
 
+(defn base-neighborhood-acgt
+  [k d]
+  ;; idn't that zero just purdy
+  (neighborhood-acgt-64b k d 0))
+
 (defn neighborhood-transform
-  "given a base neighborhood for k & d, transforms to the neighborhood for kmer"
-  [base-hood kmer])
+  "given a base neighborhood for k & d, transforms to the neighborhood for kmer.  GPU Acceleratable :)"
+  [base-neighborhood kmer-lng]
+  (Acgt64bNeighborhood.
+    (:k base-neighborhood)
+    (:d base-neighborhood)
+    kmer-lng
+    (map (partial neighbor-transform kmer-lng) (:b64 base-neighborhood))))
 
 (def neighbor-transform-magic-numbers
   {:left  hamming-64b-b2-magic-xor
