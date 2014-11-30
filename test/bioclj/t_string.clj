@@ -57,8 +57,6 @@
                (count ans) => 2620
                (= ans n1) => true)))
 
-(facts "acgt-get-64b-kmers")
-
 ;(count  (neighborhood-acgt-64b 32 3 (reduce-acgt-64b "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")))
 ;=> 138481 @ 00:01.000
 ;(count  (neighborhood-acgt-64b 32 4 (reduce-acgt-64b "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")))
@@ -67,6 +65,18 @@
 ;=> 51985609 @ 05:00.000
 ;; not bad
 ;; if i just had a GPU method for filtering nils from lists, i could get 32,5 down to seconds
+
+(facts "acgt-get-64b-kmers"
+       (let [acgt (acgt-get-64b-kmers 4 "AAAACCCCGGGGTTTT")
+             a (acgt-str-to-64b "AAAA")
+             c (acgt-str-to-64b "CCCC")
+             g (acgt-str-to-64b "GGGG")
+             t (acgt-str-to-64b "TTTT")]
+         (fact "from a sequence, produces an array that contains the kmers at each index as 64b integers"
+               (nth (:b64 acgt) 0) => a
+               (nth (:b64 acgt) 4) => c
+               (nth (:b64 acgt) 8) => g
+               (nth (:b64 acgt) 12) => t)))
 
 (facts "neighborhood-transform")
 
