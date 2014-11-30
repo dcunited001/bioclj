@@ -91,5 +91,10 @@
              (let [kmer 2r00011011000110110001101100011011
                    nbor 2r00000000010101011010101011111111
                    ansr 2r00011011011011001011000111000110]
+               (neighbor-transform kmer nbor) => ansr))
+       (fact "doesn't have integer overflow issues and obtains correct result"
+             (let [kmer (acgt-str-to-64b "TTT")
+                   nbor (acgt-str-to-64b "CAA")
+                   ansr (acgt-str-to-64b "ATT")]
                (neighbor-transform kmer nbor) => ansr)))
 

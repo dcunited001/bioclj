@@ -218,15 +218,6 @@
   ;; idn't that zero just purdy
   (neighborhood-acgt-64b k d 0))
 
-(defn neighborhood-transform
-  "given a base neighborhood for k & d, transforms to the neighborhood for kmer.  GPU Acceleratable :)"
-  [base-neighborhood kmer-lng]
-  (Acgt64bNeighborhood.
-    (:k base-neighborhood)
-    (:d base-neighborhood)
-    kmer-lng
-    (map (partial neighbor-transform kmer-lng) (:b64 base-neighborhood))))
-
 (def neighbor-transform-magic-numbers
   {:left  hamming-64b-b2-magic-xor
    :right (bit-not hamming-64b-b2-magic-xor)})
@@ -236,10 +227,19 @@
   [kmer nbor]
   (let [el-magic (:left neighbor-transform-magic-numbers)
         r-magic (:right neighbor-transform-magic-numbers)
-        x (+ (bit-and kmer r-magic)
+        x (unchecked-add (bit-and kmer r-magic)
              (bit-and nbor r-magic))
-        y (+ (bit-and kmer el-magic)
+        y (unchecked-add (bit-and kmer el-magic)
              (bit-and nbor el-magic))
         z (bit-xor x y)]
     (bit-or (bit-and x r-magic)
             (bit-and z el-magic))))
+
+(defn neighborhood-transform
+  "given a base neighborhood for k & d, transforms to the neighborhood for kmer.  GPU Acceleratable :)"
+  [base-neighborhood kmer-lng]
+  (Acgt64bNeighborhood.
+    (:k base-neighborhood)
+    (:d base-neighborhood)
+    kmer-lng
+    (map (partial neighbor-transform kmer-lng) (:b64 base-neighborhood))))
