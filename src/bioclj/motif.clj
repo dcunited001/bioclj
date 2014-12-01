@@ -116,8 +116,11 @@
 
   )
 
+(defn motif-profile-most-probable-kmer [dna k profile])
+(defn motif-most-probable-to-kmers [dna mpk])
+
 ;;TODO: profile record and methods for operating on them
-(defn motif-profile-most-probable-kmer
+(defn motif-profile-consensus-kmer-generator
   [dna k profile]
   (reduce
     (fn [nucs pos]
@@ -135,7 +138,7 @@
     []
     (range k)))
 
-(defn motif-most-probable-to-kmers
+(defn motif-profile-top-consensus-kmer
   "converts the array of hashed returned above to a nucleotide"
   [dna mpk]
   ;;TODO: alter this to return the first nucleotides in dna
