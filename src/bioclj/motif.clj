@@ -20,6 +20,12 @@
     #{}
     (:b64 seq)))
 
+(defn accept-string-or-kmer-ints
+  [k dna]
+  (if (string? (first dna))
+    (map (partial acgt-get-64b-kmers k) dna)
+    dna))
+
 (defn motif-enumeration
   [k d seqs]
 
@@ -30,10 +36,7 @@
   ;5) return the composite set
 
   (let [base-hood (base-neighborhood-acgt k d)
-
-        seqs-kmers (if (string? (first seqs))
-                     (map (partial acgt-get-64b-kmers k) seqs)
-                     seqs)]
+        seqs-kmers (accept-string-or-kmer-ints k seqs)]
     (reduce
       (fn [motifs seq-kmers]
         (let [seq-nbors (seq-neighbors base-hood seq-kmers)]
@@ -94,9 +97,7 @@
 ;; as a starting domain instead
 (defn median-string
   [k dna]
-  (let [dna-seqs (if (string? (first dna))
-                   (map (partial acgt-get-64b-kmers k) dna)
-                   dna)]
+  (let [dna-seqs (accept-string-or-kmer-ints k dna)]
     (reduce
       #(let [shifted-pattern (bit-shift-left %2 (- 64 (* 2 k)))
              dist (median-string-distance dna-seqs shifted-pattern)]
@@ -116,8 +117,35 @@
 
   )
 
-(defn motif-profile-most-probable-kmer [dna k profile])
-(defn motif-most-probable-to-kmers [dna mpk])
+(defn motif-probability-for-kmer
+  [profile k kmer]
+  (reduce
+    (fn [p-of-kmer kindex]
+      (let [nucleo (unsigned-bit-shift-right
+                     (bit-and kmer (nth acgt-index-bitmasks kindex))
+                     (* 2 (- 31 kindex)))
+            p-of-nucleo (nth profile (+ kindex (* k nucleo)))]
+        (* p-of-kmer p-of-nucleo)))
+    1
+    (range k)))
+
+(defn motif-profile-most-probable-kmer [profile k dna]
+  (let [dna-seq (if (string? dna)
+                   (acgt-get-64b-kmers k dna)
+                   dna)]
+
+    ;requires the first kmer identified, when if there's a tie.
+    ; fold may cause problems with order
+    ;(r/fold
+      ;4 (fn fold-> ([] 0) ([x y] (if (> x y) x y)))
+      (reduce
+        (fn mpk [p kmer]
+        (let [p-of-kmer (motif-probability-for-kmer profile k kmer)]
+          (if (> p-of-kmer (:max p))
+            {:max p-of-kmer :kmer kmer}
+            p)))
+      {:max 0 }
+      (:b64 dna-seq))))
 
 ;;TODO: profile record and methods for operating on them
 (defn motif-profile-consensus-kmer-generator
@@ -134,7 +162,7 @@
                       (assoc nuc :nuc (conj (:nuc nuc) i))
                       nuc))))
               {:max -1 :nuc []}
-              (range 0 4))))
+              (range 4))))
     []
     (range k)))
 

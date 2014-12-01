@@ -28,7 +28,33 @@
 (facts "median-string-distance")
 (facts "median-string")
 
-(facts "motif-profile-most-probable-kmer")
+(facts "motif-profile-probability-for-kmer"
+       (let [k 5
+             kmer (acgt-str-to-64b "TTTAT")
+             dna (acgt-get-64b-kmers k "ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT")
+             profile [0.2 0.2 0.3 0.2 0.3
+                      0.4 0.3 0.1 0.5 0.1
+                      0.3 0.3 0.5 0.2 0.4
+                      0.1 0.2 0.1 0.1 0.2]]
+         (motif-probability-for-kmer profile k kmer) => (* 0.1 0.2 0.1 0.2 0.2)))
+
+(facts "motif-profile-most-probable-kmer"
+       (let [k 5
+             dna (acgt-get-64b-kmers k "ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT")
+             profile [0.2 0.2 0.3 0.2 0.3
+                      0.4 0.3 0.1 0.5 0.1
+                      0.3 0.3 0.5 0.2 0.4
+                      0.1 0.2 0.1 0.1 0.2]
+             ans (motif-profile-most-probable-kmer profile k dna)]
+         (apply str (acgt-64b-to-str k (:kmer ans))) => "CCGAG")
+       (let [k 6
+             dna (acgt-get-64b-kmers k "TGCCCGAGCTATCTTATGCGCATCGCATGCGGACCCTTCCCTAGGCTTGTCGCAAGCCATTATCCTGGGCGCTAGTTGCGCGAGTATTGTCAGACCTGATGACGCTGTAAGCTAGCGTGTTCAGCGGCGCGCAATGAGCGGTTTAGATCACAGAATCCTTTGGCGTATTCCTATCCGTTACATCACCTTCCTCACCCCTA")
+             profile [0.364 0.333 0.303 0.212 0.121 0.242
+                      0.182 0.182 0.212 0.303 0.182 0.303
+                      0.121 0.303 0.182 0.273 0.333 0.303
+                      0.333 0.182 0.303 0.212 0.364 0.152]
+             ans (motif-profile-most-probable-kmer profile k dna)]
+         (apply str (acgt-64b-to-str k (:kmer ans))) => "TGTCGC"))
 
 (facts "motif-profile-consensus-kmer-generator"
        (fact "produces a list of arrays that contain the most probable nucleotides at each index"
@@ -39,7 +65,7 @@
                             0.3 0.3 0.5 0.2 0.4
                             0.1 0.2 0.1 0.1 0.2]
                    ans (motif-profile-consensus-kmer-generator dna k profile)]
-               (apply str (acgt-64b-to-str k (motif-profile-top-consensus-kmer dna ans))) => "CCGAG")
+               (apply str (acgt-64b-to-str k (motif-profile-top-consensus-kmer dna ans))) => "CCGCG")
              (let [k 6
                    dna (acgt-get-64b-kmers k "TGCCCGAGCTATCTTATGCGCATCGCATGCGGACCCTTCCCTAGGCTTGTCGCAAGCCATTATCCTGGGCGCTAGTTGCGCGAGTATTGTCAGACCTGATGACGCTGTAAGCTAGCGTGTTCAGCGGCGCGCAATGAGCGGTTTAGATCACAGAATCCTTTGGCGTATTCCTATCCGTTACATCACCTTCCTCACCCCTA")
                    profile [0.364 0.333 0.303 0.212 0.121 0.242
@@ -47,4 +73,4 @@
                             0.121 0.303 0.182 0.273 0.333 0.303
                             0.333 0.182 0.303 0.212 0.364 0.152]
                    ans (motif-profile-consensus-kmer-generator dna k profile)]
-               (apply str (acgt-64b-to-str k (motif-profile-top-consensus-kmer dna ans))) => "TGTCGC")))
+               (apply str (acgt-64b-to-str k (motif-profile-top-consensus-kmer dna ans))) => "AAACTC")))
