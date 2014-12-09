@@ -136,6 +136,8 @@
     (or (:profile this)
         (:profile (set-profile this))))
 
+  ;; hmmm .. to flatten or not?  motif-profile-most-probable-kmer takes 1d array
+  ;; doesn't really matter, leaving it for now
   (set-profile [this]
     (let [m-totals (map :counts (motif-totals this))
           t (count motifs)]
@@ -215,11 +217,6 @@
              []
              (range k)))))
 
-(defn motif-profile
-  [motifs]
-
-  )
-
 (defn motif-probability-for-kmer
   [profile k kmer]
   (reduce
@@ -233,7 +230,8 @@
 (defn motif-profile-most-probable-kmer [profile k dna]
   (let [dna-seq (if (string? dna)
                   (acgt-get-64b-kmers k dna)
-                  dna)]
+                  dna)
+        kmers (:b64 dna-seq)]
 
     ;requires the first kmer identified, when if there's a tie.
     ; fold may cause problems with order. can't use :(
@@ -245,8 +243,9 @@
           (if (> p-of-kmer (:max p))
             {:max p-of-kmer :kmer kmer}
             p)))
-      {:max 0}
-      (:b64 dna-seq))))
+      {:max (motif-probability-for-kmer profile k (first kmers))
+       :kmer (first kmers)}
+      (rest kmers))))
 
 ;;TODO: profile record and methods for operating on them
 ;; note: gets the consensus string from the probabilities in Profile
