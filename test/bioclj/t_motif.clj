@@ -116,10 +116,16 @@
                  p3 => [0.2 0.7 0.1 0.0]
                  p5 => [0.3 0.3 0.1 0.3]))
 
-         (fact "consensus-string: returns the most-likely consensus string for this profile")
-         (fact "consensus-strings: returns all of the possible consensus strings for this profile")
-         (fact "score: given the counts of nucleotides, returns the sum of differences between that nuc")))
+         (fact "consensus-strings: returns all of the possible consensus strings for this profile"
+               (let [ans (map acgt-str-to-64b ["AACTA" "AACTC" "AACTT"])
+                     con-strings (consensus-strings mp)]
+                 (count con-strings) => 3
+                 (sort con-strings) => ans))
+         (fact "consensus-string: returns the most-likely consensus string for this profile"
+               (let [ans (acgt-str-to-64b "AACTA")
+                     con (consensus mp)]
+                 con => ans))
+         (fact "score: given the counts of nucleotides, returns the sum of differences between that nuc"
+               (score mp) => 16)))
 
 (facts "greedy-motif-search")
-
-

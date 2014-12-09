@@ -119,6 +119,10 @@
   (set-profile [_])
   (score [_])
   (set-score [_])
+  (consensus [_])
+  (set-consensus [_])
+  (consensus-strings [_])
+  (set-consensus-strings [_])
   (motif-totals [_])
   (set-motif-totals [_]))
 
@@ -145,7 +149,45 @@
         (:score (set-score this))))
 
   (set-score [this]
-    (assoc this :score 0))
+    (let [cstr (consensus this)]
+      (->> motifs
+           (map (partial hamming-64b cstr))
+           (reduce +)
+           (assoc this :score))))
+
+  (consensus [this]
+    (or (:consensus this)
+        (:consensus (set-consensus this))))
+
+  (set-consensus [this]
+    (assoc this :consensus (first (sort (consensus-strings this)))))
+
+  (consensus-strings [this]
+    (or (:consensus-strings this)
+        (:consensus-strings (set-consensus-strings this))))
+
+  ;; could rewrite a slightly faster version of this and just grab the first out of each n-max
+  ;; - but this shouldn't save too much time, but would avoid the necessary sort to get the consensus-string
+  (set-consensus-strings [this]
+    (let [n-max (map :max-nucleotides (motif-totals this))
+          fn-get-shifted-nucs (fn [i select]
+                                (let [shifted-nucs (nth acgt-64b-shifted-nucleotides i)]
+                                  (mapv (partial nth shifted-nucs) select)))]
+      (->> (range 1 k)
+           (reduce
+             (fn [cstr i]
+               (reduce
+                 (fn [expanded cs]
+                   (let [exp-cs (->> (fn-get-shifted-nucs i (nth n-max i))
+                                     (mapv (partial bit-or cs)))]
+                     (if (empty? expanded)
+                       exp-cs
+                       (conj expanded exp-cs))))
+                 []
+                 cstr))
+             (fn-get-shifted-nucs 0 (first n-max)))
+           (vec)
+           (assoc this :consensus-strings))))
 
   (motif-totals [this]
     (or (:motif-totals this)
