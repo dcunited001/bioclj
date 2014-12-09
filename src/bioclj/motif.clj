@@ -162,7 +162,8 @@
         (:consensus (set-consensus this))))
 
   (set-consensus [this]
-    (assoc this :consensus (first (sort (consensus-strings this)))))
+    (assoc this :consensus
+           (first (consensus-strings this))))
 
   (consensus-strings [this]
     (or (:consensus-strings this)
@@ -222,7 +223,7 @@
   (reduce
     (fn [p-of-kmer kindex]
       (let [nucleo (get-shifted-nucleotide-from-kmer kmer kindex)
-            p-of-nucleo (nth profile (+ kindex (* k nucleo)))]
+            p-of-nucleo (nth profile (+ nucleo (* 4 kindex)))]
         (* p-of-kmer p-of-nucleo)))
     1
     (range k)))
@@ -278,6 +279,12 @@
     0
     (range (count mpk))))
 
+(defn prn-motif-debug [k mp]
+  (prn (score mp)
+       (apply str (acgt-64b-to-str k (consensus mp)))
+       (map (comp (partial apply str) (partial acgt-64b-to-str k)) (:motifs mp))
+       mp))
+
 (defn greedy-motif-search
   [dna-seqs k]
   (let [t (count dna-seqs)
@@ -298,5 +305,8 @@
             these-motifs
             best-motifs)))
       init-motifs
-      (:b64 (first seqs-kmers)))
-    ))
+      (:b64 (first seqs-kmers)))))
+
+
+
+

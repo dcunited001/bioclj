@@ -32,29 +32,52 @@
        (let [k 5
              kmer (acgt-str-to-64b "TTTAT")
              dna (acgt-get-64b-kmers k "ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT")
-             profile [0.2 0.2 0.3 0.2 0.3
-                      0.4 0.3 0.1 0.5 0.1
-                      0.3 0.3 0.5 0.2 0.4
-                      0.1 0.2 0.1 0.1 0.2]]
-         (motif-probability-for-kmer profile k kmer) => (* 0.1 0.2 0.1 0.2 0.2)))
+             profile [0.2 0.4 0.3 0.1
+                      0.2 0.3 0.3 0.2
+                      0.3 0.1 0.5 0.1
+                      0.2 0.5 0.2 0.1
+                      0.3 0.1 0.4 0.2]]
+         (motif-probability-for-kmer profile k kmer) => (* 0.1 0.2 0.1 0.2 0.2))
+       (let [k 3
+             profile [0.5 0.0 0.5 0.0
+                      0.5 0.0 0.5 0.0
+                      0.0 0.5 0.5 0.0]
+             k1 (acgt-str-to-64b "CAA")
+             k2 (acgt-str-to-64b "AAG")
+             k3 (acgt-str-to-64b "AGG")]
+         (motif-probability-for-kmer profile k k1) => 0.0
+         (motif-probability-for-kmer profile k k2) => 0.125
+         (motif-probability-for-kmer profile k k3) => 0.125))
+
 
 (facts "motif-profile-most-probable-kmer"
        (let [k 5
              dna (acgt-get-64b-kmers k "ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT")
-             profile [0.2 0.2 0.3 0.2 0.3
-                      0.4 0.3 0.1 0.5 0.1
-                      0.3 0.3 0.5 0.2 0.4
-                      0.1 0.2 0.1 0.1 0.2]
+             profile [0.2 0.4 0.3 0.1
+                      0.2 0.3 0.3 0.2
+                      0.3 0.1 0.5 0.1
+                      0.2 0.5 0.2 0.1
+                      0.3 0.1 0.4 0.2]
              ans (motif-profile-most-probable-kmer profile k dna)]
          (apply str (acgt-64b-to-str k (:kmer ans))) => "CCGAG")
        (let [k 6
              dna (acgt-get-64b-kmers k "TGCCCGAGCTATCTTATGCGCATCGCATGCGGACCCTTCCCTAGGCTTGTCGCAAGCCATTATCCTGGGCGCTAGTTGCGCGAGTATTGTCAGACCTGATGACGCTGTAAGCTAGCGTGTTCAGCGGCGCGCAATGAGCGGTTTAGATCACAGAATCCTTTGGCGTATTCCTATCCGTTACATCACCTTCCTCACCCCTA")
-             profile [0.364 0.333 0.303 0.212 0.121 0.242
-                      0.182 0.182 0.212 0.303 0.182 0.303
-                      0.121 0.303 0.182 0.273 0.333 0.303
-                      0.333 0.182 0.303 0.212 0.364 0.152]
+             profile [0.364 0.182 0.121 0.333
+                      0.333 0.182 0.303 0.182
+                      0.303 0.212 0.182 0.303
+                      0.212 0.303 0.273 0.212
+                      0.121 0.182 0.333 0.364
+                      0.242 0.303 0.303 0.152]
              ans (motif-profile-most-probable-kmer profile k dna)]
-         (apply str (acgt-64b-to-str k (:kmer ans))) => "TGTCGC"))
+         (apply str (acgt-64b-to-str k (:kmer ans))) => "TGTCGC")
+       (let [k 3
+             profile [0.5 0.0 0.5 0.0
+                      0.5 0.0 0.5 0.0
+                      0.0 0.5 0.5 0.0]
+             dna (acgt-get-64b-kmers k "CAAGGAGTTCGC")
+             expected (acgt-str-to-64b "AAG")
+             ans (motif-profile-most-probable-kmer profile k dna)]
+         (:kmer ans) => expected))
 
 (facts "motif-profile-consensus-kmer-generator"
        (fact "produces a list of arrays that contain the most probable nucleotides at each index"
@@ -122,39 +145,23 @@
                  (count con-strings) => 3
                  (sort con-strings) => ans))
          (fact "consensus-string: returns the most-likely consensus string for this profile"
-               (let [ans (acgt-str-to-64b "AACTA")
+               (let [ans (acgt-str-to-64b "AACTT")
                      con (consensus mp)]
                  con => ans))
          (fact "score: given the counts of nucleotides, returns the sum of differences between that nuc"
                (score mp) => 16)))
 
 (facts "greedy-motif-search"
-       (let [k 3
-             dna-seqs (map (partial acgt-get-64b-kmers k)
-                           ["GGCGTTCAGGCA"
-                            "AAGAATCAGTCA"
-                            "CAAGGAGTTCGC"
-                            "CACGTCAATCAC"
-                            "CAATAATATTCG"])
-             gms-result (greedy-motif-search dna-seqs k)
-             ans (->MotifProfile k (mapv acgt-str-to-64b ["CAG" "CAG" "CAA" "CAA" "CAA"]))]
-
-         (prn (map (comp (partial apply str) (partial acgt-64b-to-str 3))  (:motifs gms-result)))
-
-
-
-
-
-        ;(prn (:motifs ans))
-        ;(prn (consensus-strings ans))
-        ;(prn (score ans))
-        ;(prn (:motifs gms-result))
-        ;(prn (consensus-strings gms-result))
-        ;(prn (score gms-result))
-
-        ))
-
-
-
-
-
+       (fact "Dataset #1"
+             (let [k 3
+                   dna-seqs (map (partial acgt-get-64b-kmers k)
+                                 ["GGCGTTCAGGCA"
+                                  "AAGAATCAGTCA"
+                                  "CAAGGAGTTCGC"
+                                  "CACGTCAATCAC"
+                                  "CAATAATATTCG"])
+                   gms-result (greedy-motif-search dna-seqs k)
+                   ans (->MotifProfile k (mapv acgt-str-to-64b ["CAG" "CAG" "CAA" "CAA" "CAA"]))]
+               ;(prn (map (comp (partial apply str) (partial acgt-64b-to-str k)) (:motifs ans)))
+               ;(prn (map (comp (partial apply str) (partial acgt-64b-to-str k)) (:motifs gms-result)))
+               (:motifs ans) => (:motifs ans))))
