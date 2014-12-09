@@ -1,14 +1,14 @@
 (ns bioclj.t-motif
   (:use [midje.sweet]
-        [bioclj.motif]))
+        [bioclj.motif]
+        [bioclj.string]))
 
 (facts "motif-enumeration"
        (fact "finds common neighbors between all seqs in dna"
              (let [dna ["ATTTGGC" "TGCCTTA" "CGGTATC" "GAAAATT"]
                    ans (sort (map acgt-str-to-64b ["ATA" "ATT" "GTT" "TTT"]))]
                (sort (motif-enumeration 3 1 dna)) => ans)
-             (let [
-                   dna ["TCTGAGCTTGCGTTATTTTTAGACC"
+             (let [dna ["TCTGAGCTTGCGTTATTTTTAGACC"
                         "GTTTGACGGGAACCCGACGCCTATA"
                         "TTTTAGATTTCCTCAGTCCACTATA"
                         "CTTACAATTTCGTTATTTATCTAAT"
@@ -74,3 +74,44 @@
                             0.333 0.182 0.303 0.212 0.364 0.152]
                    ans (motif-profile-consensus-kmer-generator dna k profile)]
                (apply str (acgt-64b-to-str k (motif-profile-top-consensus-kmer dna ans))) => "AAACTC")))
+
+(facts "->MotifProfile"
+       (let [k 5
+             motif-seqs ["AAACT"
+                         "AAATC"
+                         "AACAC"
+                         "AACAT"
+                         "AACCT"
+                         "AGCTA"
+                         "AACTC"
+                         "AACTA"
+                         "AACTG"
+                         "AAGAA"]
+             motifs (sort (map acgt-str-to-64b motif-seqs))
+             mp (->MotifProfile k motifs)]
+         (fact "motif-totals: given a set of motifs of length k, finds the nucleotide counts for each index 1-k, the :max and :max-nucleotides"
+               (let [m-totals (motif-totals mp)
+                     t1 (first m-totals)
+                     t3 (nth m-totals 2)
+                     t5 (nth m-totals 4)]
+
+                 (:max t1) => 10
+                 (:max-nucleotides t1) => [0]
+                 (:counts t1) => [10 0 0 0]
+
+                 (:max t3) => 7
+                 (:max-nucleotides t3) => [1]
+                 (:counts t3) => [2 7 1 0]
+
+                 (:max t5) => 3
+                 (sort (:max-nucleotides t5)) => [0 1 3]
+                 (:counts t5) => [3 3 1 3]))
+         (fact "profile: given the counts of nucleotides for each index 1-k, returns a profile for those counts")
+         (fact "consensus-string: returns the most-likely consensus string for this profile")
+         (fact "consensus-strings: returns all of the possible consensus strings for this profile")
+         (fact "score: given the counts of nucleotides, returns the sum of differences between that nuc")))
+
+
+
+
+

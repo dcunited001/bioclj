@@ -5,6 +5,7 @@
             [clj-biosequence.alphabet :as bio.alpha]
             [clojure.math.numeric-tower :as maths]))
 
+
 (defn kmer-occurances
   "outputs the average number of occurrences of a random kmer within n random {ACTG} strings of L length"
   [k n L]
@@ -107,72 +108,124 @@
       {:median -1 :min Double/POSITIVE_INFINITY}
       (range 0 (maths/expt 4 k)))))
 
-(defn motif-count
-  [motifs]
+(defn get-shifted-nucleotide-from-kmer
+  [kmer i]
+  (unsigned-bit-shift-right
+    (bit-and kmer (nth acgt-index-bitmasks i))
+    (* 2 (- 31 i))))
 
-  )
+(defprotocol ProfileOps
+  (profile [_])
+  (set-profile [this nucleotide-count])
+  (score [_])
+  (set-score [this nucleotide-count])
+  (motif-totals [_]))
 
-(defn motif-profile
-  [motifs]
+(defrecord MotifProfile [k motifs]
+  ProfileOps
+  (profile [this]
+    (or (:profile this)
+        (do (motif-totals this)
+            (:profile this))))
+  (set-profile [this nucleotide-count]
 
-  )
+    )
+  (score [this]
+    (or (:score this)
+        (do (motif-totals this)
+            (:score this))))
+  (set-score [this nucleotide-count]
 
-(defn motif-probability-for-kmer
-  [profile k kmer]
-  (reduce
-    (fn [p-of-kmer kindex]
-      (let [nucleo (unsigned-bit-shift-right
-                     (bit-and kmer (nth acgt-index-bitmasks kindex))
-                     (* 2 (- 31 kindex)))
-            p-of-nucleo (nth profile (+ kindex (* k nucleo)))]
-        (* p-of-kmer p-of-nucleo)))
-    1
-    (range k)))
+    )
 
-(defn motif-profile-most-probable-kmer [profile k dna]
-  (let [dna-seq (if (string? dna)
-                   (acgt-get-64b-kmers k dna)
-                   dna)]
+  ;; possible to tally up faster?
+  (motif-totals [this]
+    (or (:motif-totals this)
+        (reduce
+          (fn [nucleo-counts kindex]
+            (conj nucleo-counts
+                  ;; for each nucleotide, collect the sums and find the max for each nucleotide
+                  (reduce
+                    (fn [col-totals motif]
+                      (let [nuc (get-shifted-nucleotide-from-kmer motif kindex)
+                            nuc-count (inc (nth (:counts col-totals) nuc))
+                            nuc-counts (assoc (:counts col-totals) nuc nuc-count)
+                            [new-max max-nucleotides] (or (and (= nuc-count (:max col-totals)) [nuc-count (vec (conj (:max-nucleotides col-totals) nuc))])
+                                                (and (> nuc-count (:max col-totals)) [nuc-count [nuc]])
+                                                [(:max col-totals) (:max-nucleotides col-totals)])]
+                        {:max new-max :max-nucleotides max-nucleotides :counts nuc-counts}))
+                    ;; init value: max [nucleotide count], increment when examining each nucleotide
+                    { :max 0 :max-nucleotides [0]  :counts [0 0 0 0] }
+                    motifs)))
+          []
+          (range k)))))
 
-    ;requires the first kmer identified, when if there's a tie.
-    ; fold may cause problems with order
-    ;(r/fold
+  (defn motif-profile
+    [motifs]
+
+    )
+
+  (defn motif-probability-for-kmer
+    [profile k kmer]
+    (reduce
+      (fn [p-of-kmer kindex]
+        (let [nucleo (get-shifted-nucleotide-from-kmer kmer kindex)
+              p-of-nucleo (nth profile (+ kindex (* k nucleo)))]
+          (* p-of-kmer p-of-nucleo)))
+      1
+      (range k)))
+
+  (defn motif-profile-most-probable-kmer [profile k dna]
+    (let [dna-seq (if (string? dna)
+                    (acgt-get-64b-kmers k dna)
+                    dna)]
+
+      ;requires the first kmer identified, when if there's a tie.
+      ; fold may cause problems with order. can't use :(
+      ;(r/fold
       ;4 (fn fold-> ([] 0) ([x y] (if (> x y) x y)))
       (reduce
         (fn mpk [p kmer]
-        (let [p-of-kmer (motif-probability-for-kmer profile k kmer)]
-          (if (> p-of-kmer (:max p))
-            {:max p-of-kmer :kmer kmer}
-            p)))
-      {:max 0 }
-      (:b64 dna-seq))))
+          (let [p-of-kmer (motif-probability-for-kmer profile k kmer)]
+            (if (> p-of-kmer (:max p))
+              {:max p-of-kmer :kmer kmer}
+              p)))
+        {:max 0}
+        (:b64 dna-seq))))
 
-;;TODO: profile record and methods for operating on them
-(defn motif-profile-consensus-kmer-generator
-  [dna k profile]
-  (reduce
-    (fn [nucs pos]
-      (conj nucs
-            (reduce
-              (fn [nuc i]
-                (let [new-max (nth profile (+ (* k i) pos))]
-                  (if (> new-max (:max nuc))
-                    {:max new-max :nuc [i]}
-                    (if (= new-max (:max nuc))
-                      (assoc nuc :nuc (conj (:nuc nuc) i))
-                      nuc))))
-              {:max -1 :nuc []}
-              (range 4))))
-    []
-    (range k)))
+  ;;TODO: profile record and methods for operating on them
+  ;; note: gets the consensus string from the probabilities in Profile
+  (defn motif-profile-consensus-kmer-generator
+    [dna k profile]
+    (reduce
+      (fn [nucs pos]
+        (conj nucs
+              (reduce
+                (fn [nuc i]
+                  (let [new-max (nth profile (+ (* k i) pos))]
+                    (if (> new-max (:max nuc))
+                      {:max new-max :nuc [i]}
+                      (if (= new-max (:max nuc))
+                        (assoc nuc :nuc (conj (:nuc nuc) i))
+                        nuc))))
+                {:max -1 :nuc []}
+                (range 4))))
+      []
+      (range k)))
 
-(defn motif-profile-top-consensus-kmer
-  "converts the array of hashed returned above to a nucleotide"
-  [dna mpk]
-  ;;TODO: alter this to return the first nucleotides in dna
-  (reduce
-    #(let [m (nth mpk %2)
-           nucleo (nth (acgt-64b-shifted-nucleotides %2) (first (:nuc m)))]
-      (bit-or %1 nucleo))
-    0
-    (range (count mpk))))
+  (defn motif-profile-top-consensus-kmer
+    "converts the array of hashed returned above to a nucleotide"
+    [dna mpk]
+    ;;TODO: alter this to return the first nucleotides in dna
+    (reduce
+      #(let [m (nth mpk %2)
+             nucleo (nth (acgt-64b-shifted-nucleotides %2) (first (:nuc m)))]
+        (bit-or %1 nucleo))
+      0
+      (range (count mpk))))
+
+  (defn greedy-motif-search
+    [dna-seqs k t]
+
+    )
+
