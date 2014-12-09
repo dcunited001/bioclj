@@ -184,7 +184,7 @@
                                      (mapv (partial bit-or cs)))]
                      (if (empty? expanded)
                        exp-cs
-                       (conj expanded exp-cs))))
+                       (apply (partial conj expanded) exp-cs))))
                  []
                  cstr))
              (fn-get-shifted-nucs 0 (first n-max)))
@@ -279,7 +279,24 @@
     (range (count mpk))))
 
 (defn greedy-motif-search
-  [dna-seqs k t]
+  [dna-seqs k]
+  (let [t (count dna-seqs)
+        seqs-kmers (accept-string-or-kmer-ints k dna-seqs)
+        init-motifs (->MotifProfile k (mapv (comp first :b64) seqs-kmers))]
 
-  )
-
+    (reduce
+      (fn [best-motifs start-motif]
+        (let [best-score (score best-motifs)
+              start-motif (->MotifProfile k [start-motif])
+              these-motifs (reduce
+                             (fn [motif-profile dna-seq]
+                               (let [kmer-maxp (motif-profile-most-probable-kmer (flatten (profile motif-profile)) k dna-seq)]
+                                 (->MotifProfile k (conj (:motifs motif-profile) (:kmer kmer-maxp)))))
+                             start-motif
+                             (rest seqs-kmers))]
+          (if (< (score these-motifs) best-score)
+            these-motifs
+            best-motifs)))
+      init-motifs
+      (:b64 (first seqs-kmers)))
+    ))

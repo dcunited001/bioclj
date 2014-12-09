@@ -128,4 +128,33 @@
          (fact "score: given the counts of nucleotides, returns the sum of differences between that nuc"
                (score mp) => 16)))
 
-(facts "greedy-motif-search")
+(facts "greedy-motif-search"
+       (let [k 3
+             dna-seqs (map (partial acgt-get-64b-kmers k)
+                           ["GGCGTTCAGGCA"
+                            "AAGAATCAGTCA"
+                            "CAAGGAGTTCGC"
+                            "CACGTCAATCAC"
+                            "CAATAATATTCG"])
+             gms-result (greedy-motif-search dna-seqs k)
+             ans (->MotifProfile k (mapv acgt-str-to-64b ["CAG" "CAG" "CAA" "CAA" "CAA"]))]
+
+         (prn (map (comp (partial apply str) (partial acgt-64b-to-str 3))  (:motifs gms-result)))
+
+
+
+
+
+        ;(prn (:motifs ans))
+        ;(prn (consensus-strings ans))
+        ;(prn (score ans))
+        ;(prn (:motifs gms-result))
+        ;(prn (consensus-strings gms-result))
+        ;(prn (score gms-result))
+
+        ))
+
+
+
+
+
