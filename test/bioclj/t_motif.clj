@@ -88,10 +88,10 @@
                          "AACTG"
                          "AAGAA"]
              motifs (sort (map acgt-str-to-64b motif-seqs))
-             mp (->MotifProfile k motifs)]
+             mp (->MotifProfile k motifs)
+             m-totals (motif-totals mp)]
          (fact "motif-totals: given a set of motifs of length k, finds the nucleotide counts for each index 1-k, the :max and :max-nucleotides"
-               (let [m-totals (motif-totals mp)
-                     t1 (first m-totals)
+               (let [t1 (first m-totals)
                      t3 (nth m-totals 2)
                      t5 (nth m-totals 4)]
 
@@ -106,12 +106,20 @@
                  (:max t5) => 3
                  (sort (:max-nucleotides t5)) => [0 1 3]
                  (:counts t5) => [3 3 1 3]))
-         (fact "profile: given the counts of nucleotides for each index 1-k, returns a profile for those counts")
+         (fact "profile: given the counts of nucleotides for each index 1-k, returns a profile for those counts"
+               (let [pro (profile mp)
+                     p1 (first pro)
+                     p3 (nth pro 2)
+                     p5 (nth pro 4)]
+
+                 p1 => [1.0 0.0 0.0 0.0]
+                 p3 => [0.2 0.7 0.1 0.0]
+                 p5 => [0.3 0.3 0.1 0.3]))
+
          (fact "consensus-string: returns the most-likely consensus string for this profile")
          (fact "consensus-strings: returns all of the possible consensus strings for this profile")
          (fact "score: given the counts of nucleotides, returns the sum of differences between that nuc")))
 
-
-
+(facts "greedy-motif-search")
 
 
