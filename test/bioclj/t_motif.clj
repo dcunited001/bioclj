@@ -110,7 +110,7 @@
                          "AACTA"
                          "AACTG"
                          "AAGAA"]
-             motifs (sort (map acgt-str-to-64b motif-seqs))
+             motifs (map acgt-str-to-64b motif-seqs)
              mp (->MotifProfile k motifs)
              m-totals (motif-totals mp)]
          (fact "motif-totals: given a set of motifs of length k, finds the nucleotide counts for each index 1-k, the :max and :max-nucleotides"
@@ -139,6 +139,23 @@
                  p3 => [0.2 0.7 0.1 0.0]
                  p5 => [0.3 0.3 0.1 0.3]))
 
+         (fact "profile-with-laplace: gets the profile with laplace rule of succession applied"
+               (let [motif-seqs ["AAACT"
+                                 "AAATC"
+                                 "AACAC"
+                                 "AACAT"
+                                 "AACCT"
+                                 "AGCTA"]
+                     motifs (sort (map acgt-str-to-64b motif-seqs))
+                     mp-ros (->MotifProfile k motifs)
+                     pro (profile-ros mp-ros)
+                     p1 (first pro)
+                     p3 (nth pro 2)
+                     p5 (nth pro 4)]
+                 p1 => [0.7 0.1 0.1 0.1]
+                 p3 => [0.3 0.5 0.1 0.1]
+                 p5 => [0.2 0.3 0.1 0.4]))
+
          (fact "consensus-strings: returns all of the possible consensus strings for this profile"
                (let [ans (map acgt-str-to-64b ["AACTA" "AACTC" "AACTT"])
                      con-strings (consensus-strings mp)]
@@ -164,4 +181,17 @@
                    ans (->MotifProfile k (mapv acgt-str-to-64b ["CAG" "CAG" "CAA" "CAA" "CAA"]))]
                ;(prn (map (comp (partial apply str) (partial acgt-64b-to-str k)) (:motifs ans)))
                ;(prn (map (comp (partial apply str) (partial acgt-64b-to-str k)) (:motifs gms-result)))
+               (:motifs ans) => (:motifs ans))))
+
+(facts "greedy-motif-search-with-ros"
+       (fact "Dataset #1"
+             (let [k 3
+                   dna-seqs (map (partial acgt-get-64b-kmers k)
+                                 ["GGCGTTCAGGCA"
+                                  "AAGAATCAGTCA"
+                                  "CAAGGAGTTCGC"
+                                  "CACGTCAATCAC"
+                                  "CAATAATATTCG"])
+                   gms-result (greedy-motif-search-with-ros dna-seqs k)
+                   ans (->MotifProfile k (mapv acgt-str-to-64b ["TTC" "ATC" "TTC" "ATC" "TTC"]))]
                (:motifs ans) => (:motifs ans))))

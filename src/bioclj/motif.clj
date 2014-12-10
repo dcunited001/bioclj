@@ -117,6 +117,8 @@
 (defprotocol ProfileOps
   (profile [_])
   (set-profile [_])
+  (profile-ros [_])
+  (set-profile-ros [_])
   (score [_])
   (set-score [_])
   (consensus [_])
@@ -144,6 +146,18 @@
       (->> m-totals
            (mapv (fn [mt]
                    (mapv #(/ (* 1.0 %1) t) mt)))
+           (assoc this :profile))))
+
+  (profile-ros [this]
+    (or (:profile-ros this)
+        (:profile (set-profile-ros this))))
+
+  (set-profile-ros [this]
+    (let [m-totals (map :counts (motif-totals this))
+          t (count motifs)]
+      (->> m-totals
+           (mapv (fn [mt]
+                   (mapv #(/ (* 1.0 (+ 1 %1)) (+ t 4)) mt)))
            (assoc this :profile))))
 
   (score [this]
@@ -285,8 +299,8 @@
        (map (comp (partial apply str) (partial acgt-64b-to-str k)) (:motifs mp))
        mp))
 
-(defn greedy-motif-search
-  [dna-seqs k]
+(defn greedy-motif
+  [f-profile dna-seqs k]
   (let [t (count dna-seqs)
         seqs-kmers (accept-string-or-kmer-ints k dna-seqs)
         init-motifs (->MotifProfile k (mapv (comp first :b64) seqs-kmers))]
@@ -297,7 +311,7 @@
               start-motif (->MotifProfile k [start-motif])
               these-motifs (reduce
                              (fn [motif-profile dna-seq]
-                               (let [kmer-maxp (motif-profile-most-probable-kmer (flatten (profile motif-profile)) k dna-seq)]
+                               (let [kmer-maxp (motif-profile-most-probable-kmer (f-profile motif-profile) k dna-seq)]
                                  (->MotifProfile k (conj (:motifs motif-profile) (:kmer kmer-maxp)))))
                              start-motif
                              (rest seqs-kmers))]
@@ -307,6 +321,8 @@
       init-motifs
       (:b64 (first seqs-kmers)))))
 
+(def greedy-motif-search
+  (partial greedy-motif #(flatten (profile %1))))
 
-
-
+(def greedy-motif-search-with-ros
+  (partial greedy-motif #(flatten (profile-ros %1))))
