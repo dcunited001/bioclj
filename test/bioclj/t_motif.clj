@@ -195,3 +195,29 @@
                    gms-result (greedy-motif-search-with-ros dna-seqs k)
                    ans (->MotifProfile k (mapv acgt-str-to-64b ["TTC" "ATC" "TTC" "ATC" "TTC"]))]
                (:motifs ans) => (:motifs ans))))
+
+(facts "randomized-motif-search"
+       (let [k 8
+             dna-seqs (map (partial acgt-get-64b-kmers k)
+                           ["CGCCCCTCTCGGGGGTGTTCAGTAAACGGCCA"
+                            "GGGCGAGGTATGTGTAAGTGCCAAGGTGCCAG"
+                            "TAGTACCGAGACCGAAAGAAGTATACAGGCGT"
+                            "TAGATCAAGTTTCAGGTGCACGTCGGTGAACC"
+                            "AATCCACCAGCTCCACGTGCAATGTTGGCCTA"])
+             ans (->MotifProfile k (mapv acgt-str-to-64b ["TCTCGGGG" "CCAAGGTG" "TACAGGCG" "TTCAGGTG" "TCCACGTG"]))]
+
+         (fact "can search in serial"
+               ;; getting 5000 iterations in about a minute, with k=8,t=5,l~30
+               (prn (bioclj.core/now))
+               (let [rms-result (randomized-motif-search dna-seqs k 1000)]
+                 (<= (score rms-result) 10) => true)
+               (prn (bioclj.core/now)))
+
+         ;; can be folded for better performance, but that'd be a bit more complicated
+         ;; parts of the algorithm could be rewritten for the gpu
+
+         (fact "can search in parallel with folded search"
+               (prn (bioclj.core/now))
+               (let [rms-result (folded-randomized-motif-search dna-seqs k 1000)]
+                 (<= (score rms-result) 10) => true)
+                (prn (bioclj.core/now)))))

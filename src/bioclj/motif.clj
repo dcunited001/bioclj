@@ -258,7 +258,7 @@
           (if (> p-of-kmer (:max p))
             {:max p-of-kmer :kmer kmer}
             p)))
-      {:max (motif-probability-for-kmer profile k (first kmers))
+      {:max  (motif-probability-for-kmer profile k (first kmers))
        :kmer (first kmers)}
       (rest kmers))))
 
@@ -326,3 +326,58 @@
 
 (def greedy-motif-search-with-ros
   (partial greedy-motif #(flatten (profile-ros %1))))
+
+(defn randomly-select-kmers [dna-seqs]
+  (reduce #(conj %1 (rand-nth (:b64 %2))) [] dna-seqs))
+
+(defn maxp-kmers [k dna-seqs mp]
+  (->> dna-seqs
+       (map #(motif-profile-most-probable-kmer (flatten (profile-ros mp)) k %1))
+       (map :kmer)))
+
+;; better as anonymous function? (don't need to pipe in vars)
+;; with anon, vars are implicitly binded in, how does this affect the performance of recursive anon function?
+(defn rdm-motif-search
+  ([k dna-seqs init-motifs]
+
+    (rdm-motif-search k dna-seqs init-motifs
+                      (->MotifProfile k (maxp-kmers k dna-seqs init-motifs))))
+
+  ([k dna-seqs best-motifs this-motifs]
+    (if (< (score this-motifs) (score best-motifs))
+      (recur k dna-seqs this-motifs (->MotifProfile k (maxp-kmers k dna-seqs this-motifs)))
+      best-motifs)))
+
+(defn randomized-motif-search [dna-seqs k N]
+  (let [t (count dna-seqs)
+        seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
+
+    (loop [n N
+           bestest-motifs (->MotifProfile k (randomly-select-kmers seqs-kmers))
+           start-motifs bestest-motifs]
+      (if (< n 0)
+        bestest-motifs
+        (let [these-motifs (rdm-motif-search k dna-seqs start-motifs)
+              this-score (score these-motifs)
+              bestest-score (score bestest-motifs)
+              better-motifs (if (< this-score bestest-score) these-motifs bestest-motifs)]
+          (recur (dec n) better-motifs (->MotifProfile k (randomly-select-kmers seqs-kmers))))))))
+
+;;TODO: fix parallelism
+(defn folded-randomized-motif-search [dna-seqs k N]
+  (let [t (count dna-seqs)
+        seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
+    (r/fold
+      1
+      (fn fold-min
+        ;; hmmm can't seem to get this to execute in parallel
+        ;; might be because the collection type doesn't support parallelism
+        ;([] {:score Double/POSITIVE_INFINITY})
+        ([] (->MotifProfile k (randomly-select-kmers seqs-kmers)))
+        ([x y] (if (< (score x) (score y)) x y)))
+      (fn fold-rmd-search [bestest-motifs foo]
+        (let [these-motifs (randomized-motif-search dna-seqs k (/ N 4))]
+          (if (< (score these-motifs) (score bestest-motifs))
+            these-motifs
+            bestest-motifs)))
+      (range 4))))
