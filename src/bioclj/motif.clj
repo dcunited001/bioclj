@@ -114,11 +114,16 @@
     (bit-and kmer (nth acgt-index-bitmasks i))
     (* 2 (- 31 i))))
 
+(defn drop-nth [n v]
+  (into [] (concat (subvec v 0 n)
+                   (subvec v (inc n) (count v)))))
+
 (defprotocol ProfileOps
   (profile [_])
   (set-profile [_])
   (profile-ros [_])
   (set-profile-ros [_])
+  (profile-gibbs [_ i])
   (score [_])
   (set-score [_])
   (consensus [_])
@@ -126,6 +131,9 @@
   (consensus-strings [_])
   (set-consensus-strings [_])
   (motif-totals [_])
+  (get-motif-totals [_ f])
+  (get-motif-totals-normal [_])
+  (get-motif-totals-gibbs [_ i])
   (set-motif-totals [_]))
 
 ;; defn get-profile-for-counts [mt]
@@ -159,6 +167,14 @@
            (mapv (fn [mt]
                    (mapv #(/ (* 1.0 (+ 1 %1)) (+ t 4)) mt)))
            (assoc this :profile))))
+
+  (profile-gibbs [this i]
+    (let [m-totals (map :counts (get-motif-totals-gibbs this i))
+          ;; instead of removing the motif at i, could also just set these probabilities to 0, but that is probably slower
+          t (dec (count motifs))]
+      (mapv (fn [mt]
+              (mapv #(/ (* 1.0 (+ 1 %1)) (+ t 4)) mt))
+            m-totals)))
 
   (score [this]
     (or (:score this)
@@ -210,27 +226,39 @@
     (or (:motif-totals this)
         (:motif-totals (set-motif-totals this))))
 
+  (get-motif-totals [this motifs-f]
+    (let [motifs (motifs-f motifs)]
+      (reduce
+        (fn [nucleo-counts kindex]
+          (conj nucleo-counts
+                ;; for each nucleotide, collect the sums and find the max for each nucleotide
+                (reduce
+                  (fn [col-totals motif]
+                    (let [nuc (get-shifted-nucleotide-from-kmer motif kindex)
+                          nuc-count (inc (nth (:counts col-totals) nuc))
+                          nuc-counts (assoc (:counts col-totals) nuc nuc-count)
+                          [new-max max-nucleotides] (or (and (= nuc-count (:max col-totals)) [nuc-count (vec (conj (:max-nucleotides col-totals) nuc))])
+                                                        (and (> nuc-count (:max col-totals)) [nuc-count [nuc]])
+                                                        [(:max col-totals) (:max-nucleotides col-totals)])]
+                      {:max new-max :max-nucleotides max-nucleotides :counts nuc-counts}))
+                  ;; init value: max [nucleotide count], increment when examining each nucleotide
+                  {:max 0 :max-nucleotides [0] :counts [0 0 0 0]}
+                  motifs)))
+        []
+        (range k))))
+
+  ;; abstacting the functions here seems to have slightly affected the performance of randomized-motif-search
+  ;; using macros would be better than passing functions.
+  (get-motif-totals-normal [this]
+    (get-motif-totals this identity))
+
+  (get-motif-totals-gibbs [this i]
+    (get-motif-totals this (partial drop-nth i)))
+
   (set-motif-totals [this]
     (assoc this
            :motif-totals
-           (reduce
-             (fn [nucleo-counts kindex]
-               (conj nucleo-counts
-                     ;; for each nucleotide, collect the sums and find the max for each nucleotide
-                     (reduce
-                       (fn [col-totals motif]
-                         (let [nuc (get-shifted-nucleotide-from-kmer motif kindex)
-                               nuc-count (inc (nth (:counts col-totals) nuc))
-                               nuc-counts (assoc (:counts col-totals) nuc nuc-count)
-                               [new-max max-nucleotides] (or (and (= nuc-count (:max col-totals)) [nuc-count (vec (conj (:max-nucleotides col-totals) nuc))])
-                                                             (and (> nuc-count (:max col-totals)) [nuc-count [nuc]])
-                                                             [(:max col-totals) (:max-nucleotides col-totals)])]
-                           {:max new-max :max-nucleotides max-nucleotides :counts nuc-counts}))
-                       ;; init value: max [nucleotide count], increment when examining each nucleotide
-                       {:max 0 :max-nucleotides [0] :counts [0 0 0 0]}
-                       motifs)))
-             []
-             (range k)))))
+           (get-motif-totals-normal this))))
 
 (defn motif-probability-for-kmer
   [profile k kmer]
@@ -363,7 +391,20 @@
               better-motifs (if (< this-score bestest-score) these-motifs bestest-motifs)]
           (recur (dec n) better-motifs (->MotifProfile k (randomly-select-kmers seqs-kmers))))))))
 
-;;TODO: fix parallelism
+
+(defn pmap-randomized-motif-search [dna-seqs k N]
+  (let [t (count dna-seqs)
+        seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
+    (reduce
+      #(if (or (nil? %1)
+               (< (score %2) (score %1)))
+        %2 %1)
+      nil
+      (pmap
+        (fn [_] (randomized-motif-search dna-seqs k (maths/ceil (/ N 20.0))))
+        (range 20))
+      )))
+
 (defn folded-randomized-motif-search [dna-seqs k N]
   (let [t (count dna-seqs)
         seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
@@ -381,3 +422,11 @@
             these-motifs
             bestest-motifs)))
       (range 4))))
+
+
+(defn gibbs-random [])
+
+(defn gibbs-sampler [dna-seqs k N]
+
+  )
+

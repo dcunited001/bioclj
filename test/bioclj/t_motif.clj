@@ -139,7 +139,7 @@
                  p3 => [0.2 0.7 0.1 0.0]
                  p5 => [0.3 0.3 0.1 0.3]))
 
-         (fact "profile-with-laplace: gets the profile with laplace rule of succession applied"
+         (fact "profile-ros: gets the profile with laplace rule of succession applied"
                (let [motif-seqs ["AAACT"
                                  "AAATC"
                                  "AACAC"
@@ -149,6 +149,25 @@
                      motifs (sort (map acgt-str-to-64b motif-seqs))
                      mp-ros (->MotifProfile k motifs)
                      pro (profile-ros mp-ros)
+                     p1 (first pro)
+                     p3 (nth pro 2)
+                     p5 (nth pro 4)]
+                 p1 => [0.7 0.1 0.1 0.1]
+                 p3 => [0.3 0.5 0.1 0.1]
+                 p5 => [0.2 0.3 0.1 0.4]))
+
+         (fact "profile-gibbs: gets the profile, but with the i'th motif dropped from the counts"
+               (let [motif-seqs ["AAACT"
+                                 "AAATC"
+                                 "AACAC"
+                                 "AACAT"
+                                 "AACCT"
+                                 "AGCTA"
+                                 "AAAAA"]
+                     ;; must be vector for gibbs sorting to work
+                     motifs (into [] (mapv acgt-str-to-64b motif-seqs))
+                     mp-ros (->MotifProfile k motifs)
+                     pro (profile-gibbs mp-ros 6)
                      p1 (first pro)
                      p3 (nth pro 2)
                      p5 (nth pro 4)]
@@ -207,7 +226,8 @@
              ans (->MotifProfile k (mapv acgt-str-to-64b ["TCTCGGGG" "CCAAGGTG" "TACAGGCG" "TTCAGGTG" "TCCACGTG"]))]
 
          (fact "can search in serial"
-               ;; getting 5000 iterations in about a minute, with k=8,t=5,l~30
+               ;; with k=8,t=5,l~30:
+               ;; 1000 in ~3s, 5000 in ~14s
                (prn (bioclj.core/now))
                (let [rms-result (randomized-motif-search dna-seqs k 1000)]
                  (<= (score rms-result) 10) => true)
@@ -217,7 +237,17 @@
          ;; parts of the algorithm could be rewritten for the gpu
 
          (fact "can search in parallel with folded search"
+               ;; with k=8,t=5,l~30:
+               ;; 1000 in ~3s, 5000 in ~14s
                (prn (bioclj.core/now))
                (let [rms-result (folded-randomized-motif-search dna-seqs k 1000)]
                  (<= (score rms-result) 10) => true)
-                (prn (bioclj.core/now)))))
+               (prn (bioclj.core/now)))
+
+         (fact "can search in parallel with pmap"
+               ;; with k=8,t=5,l~30:
+               ;; 1000 in ~0.7s, 5000 in ~3.5s @ 4 cores
+               (prn (bioclj.core/now))
+               (let [rms-result (pmap-randomized-motif-search dna-seqs k 1000)]
+                 (<= (score rms-result) 10) => true)
+               (prn (bioclj.core/now)))))
