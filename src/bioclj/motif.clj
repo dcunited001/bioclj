@@ -451,7 +451,6 @@
               better-motifs (if (< this-score bestest-score) these-motifs bestest-motifs)]
           (recur (dec n) better-motifs (->MotifProfile k (randomly-select-kmers seqs-kmers))))))))
 
-
 (defn pmap-randomized-motif-search [dna-seqs k N]
   (let [t (count dna-seqs)
         seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
@@ -483,10 +482,38 @@
             bestest-motifs)))
       (range 4))))
 
-
-(defn gibbs-random [])
+(defn gibbs-random
+  "returns a new set of motifs where the i'th motif has been updated"
+  [these-motifs k dna-seqs i]
+  (let [pg (flatten (profile-gibbs these-motifs i))
+        idna (nth dna-seqs i)
+        pd (motif-profile-sum-p-of-kmer-distribution pg k idna)
+        r (rand (last pd))
+        new-kmer (get (:b64 idna) (weighted-binary-search pd r))]
+    (->MotifProfile k (assoc (:motifs these-motifs) i new-kmer))))
 
 (defn gibbs-sampler [dna-seqs k N]
+  (let [t (count dna-seqs)
+        seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
+    (loop [n N
+           best-motifs (->MotifProfile k (randomly-select-kmers seqs-kmers))
+           start-motifs best-motifs]
+      (if (< n 0)
+        best-motifs
+        (let [i (rand-int t)
+              these-motifs (gibbs-random start-motifs k dna-seqs i)
+              better-motifs (if (< (score these-motifs) (score best-motifs))
+                              these-motifs best-motifs)]
+          (recur (dec n) better-motifs these-motifs))))))
 
-  )
-
+(defn pmap-gibbs-sampler [dna-seqs k n-samplings n-starts]
+  (let [t (count dna-seqs)
+        seqs-kmers (accept-string-or-kmer-ints k dna-seqs)]
+    (reduce
+      #(if (or (nil? %1)
+               (< (score %2) (score %1)))
+        %2 %1)
+      nil
+      (pmap
+        (fn [_] (gibbs-sampler dna-seqs k (maths/ceil n-samplings)))
+        (range n-starts)))))
