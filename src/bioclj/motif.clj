@@ -321,6 +321,9 @@
     0
     (range (count mpk))))
 
+;; typical lengths of plist are expected to be around 50, this alg is < O(log(N))
+;; so the max iterations of this algorithm should be 8, instead of (count plist)
+;; with longer sequences, this would save lots of time
 (defn weighted-binary-search
   "weighted binary search for the index of values that r rests between
   plist represents an iteratively summed list of probabilities of kmers
@@ -328,7 +331,6 @@
   ([plist r]
     (weighted-binary-search plist r
                             0 (dec (count plist))))
-
   ([plist r imin imax]
     (let [size (count plist)]
       (cond (= 2 size)
