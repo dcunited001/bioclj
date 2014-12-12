@@ -321,6 +321,44 @@
     0
     (range (count mpk))))
 
+(defn weighted-binary-search
+  "weighted binary search for the index of values that r rests between
+  plist represents an iteratively summed list of probabilities of kmers
+  therefore plist(0) is p0, plist(1) is p0 + p1, etc."
+  ([plist r]
+    (weighted-binary-search plist r
+                            0 (dec (count plist))))
+
+  ([plist r imin imax]
+    (let [size (count plist)]
+      (cond (= 2 size)
+            (if (> r (first plist))
+              (inc imin)
+              imin)
+            (= 1 size)
+            imin
+            (<= r (first plist))
+            imin
+            (> r (get plist (- size 2)))
+            imax
+            :else
+            (let [ratio (/ (- r (first plist))
+                           (- (last plist) (first plist)))
+                  split-idx (int (maths/floor
+                                   (* size ratio)))
+                  ;; originally tried to optimize by catching the center value early
+                  ;;  but again, this makes things much more confusing and not much faster
+                  section (if (> r (get plist split-idx)) :right :left)]
+              (let [[split-list new-imin new-imax]
+                    (or (and (= :left section)
+                             [(subvec plist 0 (inc split-idx))
+                              imin
+                              (+ imin split-idx)])
+                        [(subvec plist (inc split-idx) size)
+                         (+ imin (inc split-idx))
+                         imax])]
+                (recur split-list r new-imin new-imax)))))))
+
 (defn prn-motif-debug [k mp]
   (prn (score mp)
        (apply str (acgt-64b-to-str k (consensus mp)))

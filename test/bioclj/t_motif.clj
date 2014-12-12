@@ -251,3 +251,18 @@
                (let [rms-result (pmap-randomized-motif-search dna-seqs k 1000)]
                  (<= (score rms-result) 10) => true)
                (prn (bioclj.core/now)))))
+
+(facts "weighted binary search"
+       (let [el1 [0.1 0.3 0.6 1.0 1.5 2.1 2.8 3.6 4.5 5.5]]
+         (weighted-binary-search el1 0.01) => 0
+         (weighted-binary-search el1 0.21) => 1
+         (weighted-binary-search el1 0.31) => 2
+         (weighted-binary-search el1 0.89) => 3
+         (weighted-binary-search el1 1.1) => 4
+         (weighted-binary-search el1 1.99) => 5
+         (weighted-binary-search el1 2.35) => 6
+         (weighted-binary-search el1 2.89) => 7
+         (weighted-binary-search el1 3.599999) => 7
+         (weighted-binary-search el1 3.67) => 8
+         (weighted-binary-search el1 4.499) => 8
+         (weighted-binary-search el1 5.4) => 9))
