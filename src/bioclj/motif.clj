@@ -118,6 +118,11 @@
   (into [] (concat (subvec v 0 n)
                    (subvec v (inc n) (count v)))))
 
+;; TODO: now that i think about it these memoized fields probably aren't doing jack shit
+;; - they would still be useful for performance,
+;; - but it's difficult/verbose to completely update the immutable object
+;; - and set it to a new immutable object that's referenced in following calls to the original object
+
 (defprotocol ProfileOps
   (profile [_])
   (set-profile [_])
@@ -360,6 +365,9 @@
                            (- (last plist) (first plist)))
                   split-idx (int (maths/floor
                                    (* size ratio)))
+                  split-idx (if (>= split-idx (dec size))
+                              (dec split-idx)
+                              split-idx)
                   ;; originally tried to optimize by catching the center value early
                   ;;  but again, this makes things much more confusing and not much faster
                   section (if (> r (get plist split-idx)) :right :left)]

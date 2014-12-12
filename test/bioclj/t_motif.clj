@@ -263,16 +263,53 @@
                (prn (bioclj.core/now)))))
 
 (facts "weighted binary search"
-       (let [el1 [0.1 0.3 0.6 1.0 1.5 2.1 2.8 3.6 4.5 5.5]]
-         (weighted-binary-search el1 0.01) => 0
-         (weighted-binary-search el1 0.21) => 1
-         (weighted-binary-search el1 0.31) => 2
-         (weighted-binary-search el1 0.89) => 3
-         (weighted-binary-search el1 1.1) => 4
-         (weighted-binary-search el1 1.99) => 5
-         (weighted-binary-search el1 2.35) => 6
-         (weighted-binary-search el1 2.89) => 7
-         (weighted-binary-search el1 3.599999) => 7
-         (weighted-binary-search el1 3.67) => 8
-         (weighted-binary-search el1 4.499) => 8
-         (weighted-binary-search el1 5.4) => 9))
+       (fact "a heavily skewed distribution"
+             (let [el1 [0.1 0.3 0.6 1.0 1.5 2.1 2.8 3.6 4.5 5.5]]
+               (weighted-binary-search el1 0.01) => 0
+               (weighted-binary-search el1 0.21) => 1
+               (weighted-binary-search el1 0.31) => 2
+               (weighted-binary-search el1 0.89) => 3
+               (weighted-binary-search el1 1.1) => 4
+               (weighted-binary-search el1 1.99) => 5
+               (weighted-binary-search el1 2.35) => 6
+               (weighted-binary-search el1 2.89) => 7
+               (weighted-binary-search el1 3.599999) => 7
+               (weighted-binary-search el1 3.67) => 8
+               (weighted-binary-search el1 4.499) => 8
+               (weighted-binary-search el1 5.4) => 9))
+
+       (fact "a less than normal distribution"
+             (let [el1 [0.5 0.6 1.6 1.8 2.7 3.0 3.8 4.2 4.9 5.5]]
+               (weighted-binary-search el1 0.01) => 0
+               (weighted-binary-search el1 0.21) => 0
+               (weighted-binary-search el1 0.51) => 1
+               (weighted-binary-search el1 0.89) => 2
+               (weighted-binary-search el1 1.1) => 2
+               (weighted-binary-search el1 1.99) => 4
+               (weighted-binary-search el1 2.35) => 4
+               (weighted-binary-search el1 2.89) => 5
+               (weighted-binary-search el1 3.799999) => 6
+               (weighted-binary-search el1 4.1999999999) => 7
+               (weighted-binary-search el1 4.67) => 8
+               (weighted-binary-search el1 4.499) => 8
+               (weighted-binary-search el1 5.4) => 9))
+
+       (fact "very very tiny numbers"
+             ;; in practice the numbers are much smaller, as p(kmer) has factor of 4^(-k)
+             (let [el2 [1.373291015625E-4 1.8310546875E-4 1.9168853759765625E-4 2.689361572265625E-4 2.7179718017578125E-4 2.9754638671875E-4 2.994537353515625E-4 5.311965942382812E-4 5.314350128173828E-4 5.410909652709961E-4 5.420446395874023E-4 5.935430526733398E-4 5.944967269897461E-4 7.489919662475586E-4 7.50422477722168E-4 7.51495361328125E-4 7.534027099609375E-4 8.220672607421875E-4 8.296966552734375E-4 8.525848388671875E-4 8.611679077148438E-4 9.126663208007812E-4 9.140968322753906E-4 9.162425994873047E-4 9.315013885498047E-4]
+                   r 7.240245691852888E-4]
+               (weighted-binary-search el2 r) => 13)))
+
+(facts "gibbs-sampler"
+       (let [k 8
+             dna-seqs (map (partial acgt-get-64b-kmers k)
+                           ["CGCCCCTCTCGGGGGTGTTCAGTAAACGGCCA"
+                            "GGGCGAGGTATGTGTAAGTGCCAAGGTGCCAG"
+                            "TAGTACCGAGACCGAAAGAAGTATACAGGCGT"
+                            "TAGATCAAGTTTCAGGTGCACGTCGGTGAACC"
+                            "AATCCACCAGCTCCACGTGCAATGTTGGCCTA"])
+             ans (->MotifProfile k (mapv acgt-str-to-64b ["TCTCGGGG" "CCAAGGTG" "TACAGGCG" "TTCAGGTG" "TCCACGTG"]))]
+
+         (<= (score (pmap-gibbs-sampler dna-seqs k 100 30)) (score ans)) => true))
+
+
