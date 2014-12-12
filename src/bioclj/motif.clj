@@ -290,6 +290,18 @@
        :kmer (first kmers)}
       (rest kmers))))
 
+(defn motif-profile-sum-p-of-kmer-distribution
+  "this returns a summed distribution, where p'(n) = ∑(i=0..n)(p(i))"
+  [profile k dna]
+  (let [dna-seq (if (string? dna)
+                  (acgt-get-64b-kmers k dna)
+                  dna)
+        kmers (:b64 dna-seq)]
+    (reduce
+      #(conj %1 (+ (last %1) (motif-probability-for-kmer profile k %2)))
+      [(motif-probability-for-kmer profile k (first kmers))]
+      (rest kmers))))
+
 ;;TODO: profile record and methods for operating on them
 ;; note: gets the consensus string from the probabilities in Profile
 (defn motif-profile-consensus-kmer-generator

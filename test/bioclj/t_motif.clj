@@ -49,7 +49,6 @@
          (motif-probability-for-kmer profile k k2) => 0.125
          (motif-probability-for-kmer profile k k3) => 0.125))
 
-
 (facts "motif-profile-most-probable-kmer"
        (let [k 5
              dna (acgt-get-64b-kmers k "ACCTGTTTATTGCCTAAGTTCCGAACAAACCCAATATAGCCCGAGGGCCT")
@@ -78,6 +77,17 @@
              expected (acgt-str-to-64b "AAG")
              ans (motif-profile-most-probable-kmer profile k dna)]
          (:kmer ans) => expected))
+
+(facts "motif-profile-sump-p-of-kmer-distribution"
+       (let [k 5
+             dna (acgt-get-64b-kmers k "AAAAAAAAA")
+             profile [1.0 0.0 0.0 0.0
+                      1.0 0.0 0.0 0.0
+                      1.0 0.0 0.0 0.0
+                      1.0 0.0 0.0 0.0
+                      1.0 0.0 0.0 0.0]
+             ans [1.0 2.0 3.0 4.0 5.0]]
+         (motif-profile-sum-p-of-kmer-distribution profile k dna) => ans))
 
 (facts "motif-profile-consensus-kmer-generator"
        (fact "produces a list of arrays that contain the most probable nucleotides at each index"
