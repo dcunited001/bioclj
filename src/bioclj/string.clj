@@ -31,6 +31,8 @@
                             [(bit-flip (bit-flip 0 0) 1)]
                             (nthrest two-multiples 1)))
 
+(defn split-kmers [kmer-str] (clojure.string/split kmer-str #" "))
+
 ;; contains the values acgt, shifted for each index
 (def acgt-64b-shifted-nucleotides
   (vec (map

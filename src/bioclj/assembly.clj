@@ -59,14 +59,8 @@
     (fn [node] (str (first node) " -> " (first (second node))))
     og))
 
-(defn debruijin-graph-to-str [dbg]
-  (map
-    (fn [node] (str (first node) " -> " (clojure.string/join "," (second node))))
-    dbg))
-
-(defn construct-debruijin-graph [k dna]
-  (let [kmers (composition k dna)
-        k-1 (dec k)]
+(defn construct-debruijin-graph [k kmers]
+  (let [k-1 (dec k)]
     (reduce
       (fn [graph kmer]
         (let [lmer (subs kmer 0 k-1)
@@ -76,4 +70,22 @@
           (assoc graph lmer (assoc this-node rmer this-rmer-count))))
       {}
       kmers)))
+
+(defn debruijin-graph-to-str [dbg]
+  (map
+    (fn [lmer]
+      (let [lmer-map (get dbg lmer)
+            rmers (sort (keys lmer-map))
+            ;p (prn rmers)
+            ;pp (prn (get lmer (first rmers)))
+            concat-rmers (flatten (map #(repeat (get lmer-map %1) %1) rmers))]
+        (str lmer " -> " (clojure.string/join "," concat-rmers))))
+    (sort (keys dbg))))
+
+(defn parse-graph [gstr]
+  (let [node-strings (clojure.string/split gstr #"\s*\n\s*")
+        nodes (map #(clojure.string/split %1 #"\s*->\s*") node-strings)]
+    (reduce #(assoc %1 (first %2)
+                    (frequencies (clojure.string/split (second %2) #",")))
+            {} nodes)))
 
