@@ -1,13 +1,14 @@
 (ns bioclj.core
   (:use [criterium.core]
         [bioclj.string]
-        [bioclj.motif])
+        [bioclj.motif]
+        [bioclj.assembly]
+        [bioclj.dynamic-programming])
   (:require [clojure.math.combinatorics :as com]
             [clojure.core.reducers :as r]
             [clj-biosequence.core :as bio.core]
             [clj-biosequence.alphabet :as bio.alpha]
             [clojure.math.numeric-tower :as maths]))
-
 
 (defn now [] (java.util.Date.))
 
@@ -576,8 +577,7 @@
                 (* n-highest (- start-trim round))
                 n-highest)
               [])
-            (recur n-highest (inc round) start-trim spectra peptides alphabet)
-            )))))
+            (recur n-highest (inc round) start-trim spectra peptides alphabet))))))
 
 (defn leaderboard-trimming-algorithm-test
   "testing to make sure i have my leaderboard algorithm set up properly, need to change up the parameters though"
@@ -614,6 +614,6 @@
                                 (frequencies)
                                 (inversemap-cat)
                                 (trim-leaderboard m []))]
-    (leaderboard-cyclopeptide-sequencing n spectra { :alphabet alphabeta })
-    ))
+    (leaderboard-cyclopeptide-sequencing n spectra { :alphabet alphabeta })))
+
 ;;seems to be returning very low peptide chains for some answers, scoring must be very low, amino acid selection may be wrong
