@@ -49,3 +49,38 @@
                         "3" {"0" 2 "4" 1}
                         "4" {"3" 1}}]
                (parse-graph gstr) => ans)))
+
+(facts "solve-eulerian-graph-linear-time"
+       (facts "solves a bad example, needing no shifts"
+              (let [graph (parse-graph "0 -> 3
+                                 1 -> 0
+                                 2 -> 1,6
+                                 3 -> 2
+                                 4 -> 2
+                                 5 -> 4
+                                 6 -> 5,8
+                                 7 -> 9
+                                 8 -> 7
+                                 9 -> 6")]
+               (solve-eulerian-graph-linear-time graph) => ["9" "6" "5" "4" "2" "1" "0" "3" "2" "6" "8" "7" "9"]))
+
+       (facts "solves a better example, needing a few shifts"
+              (let [graph (parse-graph "0 -> 3
+                                 1 -> 0,7
+                                 2 -> 1,6
+                                 3 -> 2
+                                 4 -> 2
+                                 5 -> 4
+                                 6 -> 5,8
+                                 7 -> 9,1
+                                 8 -> 7
+                                 9 -> 6")]
+                (solve-eulerian-graph-linear-time graph) => ["1" "0" "3" "2" "6" "8" "7" "9" "6" "5" "4" "2" "1" "7" "1"])))
+
+(facts "rotate-vector"
+       (let [v1 [1 2 3 4 5 6 7 8]]
+         (rotate-vector v1 2) => [7 8 1 2 3 4 5 6]
+         (rotate-vector v1 7) => [2 3 4 5 6 7 8 1]))
+
+
+

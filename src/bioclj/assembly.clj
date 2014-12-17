@@ -89,3 +89,54 @@
                     (frequencies (clojure.string/split (second %2) #",")))
             {} nodes)))
 
+(defn rotate-path [v n]
+  (let [i (- (count v) n)]
+    (into [] (concat (subvec v i (count v)) (subvec v 0 i)))))
+
+(defn solve-eulerian-graph-linear-time
+  ([start-graph]
+    (let [[selected-start next-nodes] (first start-graph)]
+      (solve-eulerian-graph-linear-time [selected-start] start-graph [0] 0)))
+
+  ;; i'm assuming that the path through the graph should never cycle completely once
+  ;;  in other words, in the path chosen through the graph, every node shifted before the original starting node will always be closed
+  ([start-cycle start-graph open-node-offset-stack N]
+    (let [selected-node (last start-cycle)
+          next-nodes (get start-graph selected-node)
+          [next-node node-val] (first next-nodes)
+          new-paths (if (= 1 node-val)
+                      (dissoc next-nodes next-node)
+                      (assoc next-nodes next-node (dec node-val)))
+          this-node-closed (empty? new-paths)
+
+          [remaining-graph last-open-node-offset]
+          (if this-node-closed
+            [(dissoc start-graph selected-node) (inc (last open-node-offset-stack))]
+            [(assoc start-graph selected-node new-paths) 1])
+          next-node-closed (empty? (get remaining-graph next-node))
+          finished? (empty? remaining-graph)
+
+          [next-cycle next-offset-stack]
+          (if (and (not finished?) next-node-closed)
+            [(rotate-path start-cycle (inc (last open-node-offset-stack)))
+             (rotate-path open-node-offset-stack (inc (last open-node-offset-stack)))]
+            [(conj start-cycle next-node)
+             (conj open-node-offset-stack last-open-node-offset)])
+
+          next-graph (if (and (not finished?) next-node-closed)
+                       (let [new-last-node (last next-cycle)
+                             new-first-node (first next-cycle)
+                             new-last-edges (get remaining-graph new-last-node {})
+                             readd-cycle-edge (assoc new-last-edges new-first-node (get new-last-edges new-first-node 1))]
+                         (assoc remaining-graph new-last-node readd-cycle-edge))
+                       remaining-graph)]
+
+      (if (or (empty? next-graph) (> N 15))
+        next-cycle
+        (recur next-cycle
+               next-graph
+               next-offset-stack
+               (inc N))))))
+
+
+
