@@ -93,13 +93,38 @@
   (let [i (- (count v) n)]
     (into [] (concat (subvec v i (count v)) (subvec v 0 i)))))
 
+(defn test-eulerian-path
+  "tests the solution for a eulerian cycle"
+  [gr p]
+  (let [start (first p)
+        next (second p)
+        these-edges (get gr start)
+        next-val (get these-edges next)]
+    (if (nil? next-val)
+      (prn (str "WRONG!! not a valid path from " start " => " next))
+      (let [new-edges (if (= 1 next-val)
+                        (dissoc these-edges next)
+                        (assoc these-edges next (dec next-val)))
+            remaining-graph (if (empty? new-edges)
+                              (dissoc gr start)
+                              (assoc gr start new-edges))]
+        (if (= (count p) 2)
+          (do (prn (str "VALID!! (so far)"))
+              true)
+          (if (empty? remaining-graph)
+            (do (prn (str "VALID!!") p remaining-graph gr) true)
+            (recur remaining-graph (rest p))))))))
+
+(defn eulerian-path-to-str [p]
+  (clojure.string/join "->" p))
+
 (defn solve-eulerian-graph-linear-time
   ([start-graph]
     (let [[selected-start next-nodes] (first start-graph)]
       (solve-eulerian-graph-linear-time [selected-start] start-graph [0] 0)))
 
   ;; i'm assuming that the path through the graph should never cycle completely once
-  ;;  in other words, in the path chosen through the graph, every node shifted before the original starting node will always be closed
+  ;;  - in other words, in the path chosen through the graph, every node shifted before the original starting node will always be closed
   ([start-cycle start-graph open-node-offset-stack N]
     (let [selected-node (last start-cycle)
           next-nodes (get start-graph selected-node)
@@ -118,8 +143,8 @@
 
           [next-cycle next-offset-stack]
           (if (and (not finished?) next-node-closed)
-            [(rotate-path start-cycle (inc (last open-node-offset-stack)))
-             (rotate-path open-node-offset-stack (inc (last open-node-offset-stack)))]
+            [(rotate-path start-cycle last-open-node-offset)
+             (rotate-path open-node-offset-stack last-open-node-offset)]
             [(conj start-cycle next-node)
              (conj open-node-offset-stack last-open-node-offset)])
 
@@ -131,12 +156,9 @@
                          (assoc remaining-graph new-last-node readd-cycle-edge))
                        remaining-graph)]
 
-      (if (or (empty? next-graph) (> N 15))
+      (if (empty? next-graph)
         next-cycle
         (recur next-cycle
                next-graph
                next-offset-stack
                (inc N))))))
-
-
-
