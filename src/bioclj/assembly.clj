@@ -76,8 +76,6 @@
     (fn [lmer]
       (let [lmer-map (get dbg lmer)
             rmers (sort (keys lmer-map))
-            ;p (prn rmers)
-            ;pp (prn (get lmer (first rmers)))
             concat-rmers (flatten (map #(repeat (get lmer-map %1) %1) rmers))]
         (str lmer " -> " (clojure.string/join "," concat-rmers))))
     (sort (keys dbg))))
@@ -121,11 +119,11 @@
 (defn solve-eulerian-graph-linear-time
   ([start-graph]
     (let [[selected-start next-nodes] (first start-graph)]
-      (solve-eulerian-graph-linear-time [selected-start] start-graph [0] 0)))
+      (solve-eulerian-graph-linear-time [selected-start] start-graph [0])))
 
   ;; i'm assuming that the path through the graph should never cycle completely once
   ;;  - in other words, in the path chosen through the graph, every node shifted before the original starting node will always be closed
-  ([start-cycle start-graph open-node-offset-stack N]
+  ([start-cycle start-graph open-node-offset-stack]
     (let [selected-node (last start-cycle)
           next-nodes (get start-graph selected-node)
           [next-node node-val] (first next-nodes)
@@ -160,5 +158,64 @@
         next-cycle
         (recur next-cycle
                next-graph
-               next-offset-stack
-               (inc N))))))
+               next-offset-stack)))))
+
+(defn edge-totals-for-graph [gr]
+  (reduce
+    (fn [totals node]
+      (let [edges (get gr node)
+            [ins outs] (reduce
+                         (fn [t [e n]]
+                           [(assoc (first t) e n) (+ (second t) n)])
+                         [{} 0]
+                         edges)]
+        {:ins  (merge-with + (get totals :ins) ins)
+         :outs (merge-with + (get totals :outs) {node outs})}))
+    {:ins  {}
+     :outs {}}
+    (keys gr)))
+
+(defn find-missing-edge-for-eulerian-cycle [gr]
+  (let [edge-totals (edge-totals-for-graph gr)
+        in-totals (:ins edge-totals)
+        out-totals (:outs edge-totals)]
+    (reduce
+      (fn [missing-edge key]
+        (let [ins (get in-totals key)
+              ins (if (nil? ins) 0 ins)
+              outs (get out-totals key)
+              outs (if (nil? outs) 0 outs)]
+          (if (not= ins outs)
+            (if (= ins (inc outs))
+              [key (second missing-edge)]
+              (if (= (inc ins) outs)
+                [(first missing-edge) key]
+                ;; this actually means invalid data
+                missing-edge))
+            missing-edge)))
+      [nil nil]
+      (keys gr))))
+
+(defn solve-eulerian-path [start-graph]
+  (let [[node edge] (find-missing-edge-for-eulerian-cycle start-graph)
+        edges-at-node (get start-graph node)
+        new-edges (if (empty? edges-at-node)
+                    {node edge}
+                    (if (nil? (get edges-at-node edge))
+                      (assoc edges-at-node edge 1)
+                      (assoc edges-at-node edge (inc (get edges-at-node edge)))))
+        new-graph (assoc start-graph node new-edges)
+        cycle (solve-eulerian-graph-linear-time [edge] new-graph [0])
+        split-index
+        ((fn search-cycle [c i]
+           (if (> i (count c))
+             -1
+             (if (and (= node (get c (- (count c) (inc i))))
+                      (= edge (get c (- (count c) i))))
+               i
+               (recur c (inc i)))))
+          cycle 0)]
+    (if (= split-index (dec (count cycle)))
+      (rest cycle)
+      (rotate-path (subvec cycle 1 (count cycle)) split-index))))
+

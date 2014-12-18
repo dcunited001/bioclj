@@ -82,3 +82,59 @@
          (rotate-path v1 2) => [7 8 1 2 3 4 5 6]
          (rotate-path v1 7) => [2 3 4 5 6 7 8 1]))
 
+(facts "edge-totals-for-graph"
+       (let [graph (parse-graph "0 -> 3
+                                 1 -> 0,7
+                                 2 -> 1,6
+                                 3 -> 2
+                                 4 -> 2
+                                 5 -> 4
+                                 6 -> 5,8
+                                 7 -> 9,1
+                                 8 -> 7
+                                 9 -> 6")
+             totals (edge-totals-for-graph graph)
+             ins (:ins totals)
+             outs (:outs totals)]
+         (get ins "0") => (get outs "0")
+         (get ins "7") => 2
+         (get outs "7") => 2))
+
+(facts "find-missing-edge-for-eulerian-cycle"
+      (let [graph (parse-graph "0 -> 3
+                                 1 -> 0,7
+                                 2 -> 1,6
+                                 3 -> 2
+                                 4 -> 2
+                                 5 -> 4
+                                 6 -> 5,8
+                                 7 -> 9
+                                 8 -> 7
+                                 9 -> 6")
+            missing-edge (find-missing-edge-for-eulerian-cycle graph)]
+        missing-edge => ["7" "1"])
+      (let [graph (parse-graph (slurp "test/data/eulerian-path.txt"))
+            missing-edge (find-missing-edge-for-eulerian-cycle graph)]
+        missing-edge => ["1587" "1630"]))
+
+(facts "solve-eulerian-path"
+       (let [graph (parse-graph "0 -> 3
+                                 1 -> 0,7
+                                 2 -> 1,6
+                                 3 -> 2
+                                 4 -> 2
+                                 5 -> 4
+                                 6 -> 5,8
+                                 7 -> 9
+                                 8 -> 7
+                                 9 -> 6")
+             ep (solve-eulerian-path graph)]
+         ep => ["1" "0" "3" "2" "1" "7" "9" "6" "5" "4" "2" "6" "8" "7"])
+       (let [graph (parse-graph (slurp "test/data/eulerian-path.txt"))
+             ep (solve-eulerian-path graph)]
+         (first ep) => "1630"
+         (last ep) => "1587"))
+
+
+
+
