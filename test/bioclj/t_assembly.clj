@@ -115,7 +115,11 @@
         missing-edge => ["7" "1"])
       (let [graph (parse-graph (slurp "test/data/eulerian-path.txt"))
             missing-edge (find-missing-edge-for-eulerian-cycle graph)]
-        missing-edge => ["1587" "1630"]))
+        missing-edge => ["1587" "1630"])
+      (let [kmers (clojure.string/split "CTTA ACCA TACC GGCT GCTT TTAC" #" ")
+            graph (construct-debruijin-graph 4 kmers)
+            missing-edge (find-missing-edge-for-eulerian-cycle graph)]
+        missing-edge => ["CCA" "GGC"]))
 
 (facts "solve-eulerian-path"
        (let [graph (parse-graph "0 -> 3
@@ -135,6 +139,10 @@
          (first ep) => "1630"
          (last ep) => "1587"))
 
+(facts "string-reconstruction"
+       (let [k 4
+             kmers (clojure.string/split "CTTA ACCA TACC GGCT GCTT TTAC" #" ")]
+         (string-reconstruction k kmers) => "GGCTTACCA"))
 
 
 

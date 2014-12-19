@@ -169,16 +169,21 @@
                            [(assoc (first t) e n) (+ (second t) n)])
                          [{} 0]
                          edges)]
-        {:ins  (merge-with + (get totals :ins) ins)
-         :outs (merge-with + (get totals :outs) {node outs})}))
-    {:ins  {}
-     :outs {}}
+        {:ins   (merge-with + (get totals :ins) ins)
+         :outs  (merge-with + (get totals :outs) {node outs})
+         :nodes (conj (apply conj (get totals :nodes) (keys ins)) node)
+         }))
+    {:ins   {}
+     :outs  {}
+     :nodes #{}}
     (keys gr)))
 
 (defn find-missing-edge-for-eulerian-cycle [gr]
   (let [edge-totals (edge-totals-for-graph gr)
         in-totals (:ins edge-totals)
-        out-totals (:outs edge-totals)]
+        out-totals (:outs edge-totals)
+        nodes (:nodes edge-totals)]
+
     (reduce
       (fn [missing-edge key]
         (let [ins (get in-totals key)
@@ -194,13 +199,13 @@
                 missing-edge))
             missing-edge)))
       [nil nil]
-      (keys gr))))
+      nodes)))
 
 (defn solve-eulerian-path [start-graph]
   (let [[node edge] (find-missing-edge-for-eulerian-cycle start-graph)
         edges-at-node (get start-graph node)
         new-edges (if (empty? edges-at-node)
-                    {node edge}
+                    {edge 1}
                     (if (nil? (get edges-at-node edge))
                       (assoc edges-at-node edge 1)
                       (assoc edges-at-node edge (inc (get edges-at-node edge)))))
@@ -208,6 +213,8 @@
         cycle (solve-eulerian-graph-linear-time [edge] new-graph [0])
         split-index
         ((fn search-cycle [c i]
+           ;; this function searches backwards and terminates early.
+           ;; because the initial node for the graph is much more likely towards the end
            (if (> i (count c))
              -1
              (if (and (= node (get c (- (count c) (inc i))))
@@ -219,3 +226,10 @@
       (rest cycle)
       (rotate-path (subvec cycle 1 (count cycle)) split-index))))
 
+(defn string-reconstruction [k kmers]
+  (let [graph (construct-debruijin-graph k kmers)
+        path (solve-eulerian-path graph)]
+    (reduce
+      #(str %1 (last %2))
+      (first path)
+      (rest path))))
