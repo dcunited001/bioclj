@@ -233,3 +233,128 @@
       #(str %1 (last %2))
       (first path)
       (rest path))))
+
+(defn universal-string-domain [k]
+  (let [domain (range 0 (maths/expt 2 k))]
+    (map #(subs (format64 %1) (- 64 k) 64) domain)))
+
+(defn solve-universal-string [k]
+  (let [domain (universal-string-domain k)
+        graph (construct-debruijin-graph k domain)]
+    (solve-eulerian-graph-linear-time graph)))
+
+(defn universal-string-path-to-str [path]
+  (reduce
+    #(str %1 (last %2))
+    (first path)
+    (rest path)))
+
+(defn circular-universal-string-path-to-str [k path]
+  ;; assumes that the input path is a valid circular path
+  (let [linear-str (universal-string-path-to-str path)]
+    (subs linear-str 0 (- (count linear-str) (dec k)))))
+
+(defn parse-read-pairs [read-pairs]
+  (mapv #(clojure.string/split %1 #"\|") (clojure.string/split read-pairs #"\s*\n\s*")))
+
+(defn string-spelled-by-a-paired-path [k d kmer-pairs]
+  (let [first-pair (first kmer-pairs)
+        [s1 s2] [(first first-pair) (second first-pair)]]
+    (reduce
+      (fn [pairs-or-str i]
+        (let [r1 (first (get kmer-pairs i))
+              r2 (second (get kmer-pairs i))]
+          (cond
+            (= i d)
+            (str (first pairs-or-str) (last r1) (second pairs-or-str) (last r2))
+            (> i d)
+            (str pairs-or-str (last r2))
+            :else
+            [(str (first pairs-or-str) (last r1)) (str (last pairs-or-str) (last r2))])))
+      [s1 s2]
+      (range 1 (count kmer-pairs)))))
+
+(defn construct-debruijin-graph [k kmers]
+  (let [k-1 (dec k)]
+    (reduce
+      (fn [graph kmer]
+        (let [lmer (subs kmer 0 k-1)
+              rmer (subs kmer 1 k)
+              this-node (get graph lmer {})
+              this-rmer-count (inc (get this-node rmer 0))]
+          (assoc graph lmer (assoc this-node rmer this-rmer-count))))
+      {}
+      kmers)))
+
+(defn construct-paired-debruijin-graph [k d read-pairs]
+  (let [k-1 (dec k)]
+    (reduce
+      (fn [graph r-pair]
+        (let [r1 (first r-pair)
+              r2 (second r-pair)
+              prefix [(subs r1 0 k-1) (subs r2 0 k-1)]
+              suffix [(subs r1 1 k) (subs r2 1 k)]
+              this-node (get graph prefix {})
+              this-suffix-count (inc (get this-node suffix 0))]
+          (assoc graph prefix (assoc this-node suffix this-suffix-count))
+          ))
+      {}
+      read-pairs)))
+
+
+(defn node-is-not-1-in-1-out [in-totals out-totals node]
+  (or (not= (get in-totals node 0) 1)
+      (not= (get out-totals node 0) 1)))
+
+(defn node-is-1-in-1-out [in-totals out-totals node]
+  (and (= (get in-totals node 0) 1)
+       (= (get out-totals node 0) 1)))
+
+(defn follow-contigs-for-node [gr edge-totals node-or-contigs]
+  (if (map? node-or-contigs)
+    (let [finished-contigs (get node-or-contigs :finished [])
+          next-contigs (reduce
+                       (fn [cntgs path]
+                         (let [last-node (last path)]
+                           (if (node-is-1-in-1-out (:ins edge-totals) (:outs edge-totals) last-node)
+                             (let [next-node (->> (get gr last-node) keys first)]
+                               (assoc cntgs :next (conj (get cntgs :next)
+                                                        (conj path next-node))))
+                             (assoc cntgs :finished (conj (get cntgs :finished) path)))))
+                       {:finished [] :next []}
+                       (:next node-or-contigs))
+          finished-contigs (into [] (concat finished-contigs (:finished next-contigs)))]
+      (if (empty? (:next next-contigs))
+        finished-contigs
+        (recur gr edge-totals {:finished finished-contigs
+                               :next     (:next next-contigs)})))
+    (let [contigs (->> node-or-contigs gr keys
+                       ;; flatten the edge counts
+                       (mapv (fn [edge] (repeat ((gr node-or-contigs) edge) edge)))
+                       (flatten)
+                       (into [])
+                       (mapv (fn [edge] [node-or-contigs edge])))]
+      (follow-contigs-for-node gr edge-totals {:next contigs}))))
+
+(defn find-all-contigs-in-debruijin-graph [gr]
+  (let [edge-totals (edge-totals-for-graph gr)
+        in-totals (:ins edge-totals)
+        out-totals (:outs edge-totals)]
+    (reduce
+      (fn [contigs node]
+        (if (node-is-not-1-in-1-out in-totals out-totals node)
+          (into [] (concat contigs (follow-contigs-for-node gr edge-totals node)))
+          contigs
+          ))
+      []
+      (keys gr))))
+
+(defn modify-graph-for-contigs [gr contigs]
+
+  )
+
+(defn format-contigs-for-graph [k contigs]
+  (map (comp (partial apply str)
+             (partial string-spelled-by-a-genome-path k))
+       contigs))
+

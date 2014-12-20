@@ -144,5 +144,53 @@
              kmers (clojure.string/split "CTTA ACCA TACC GGCT GCTT TTAC" #" ")]
          (string-reconstruction k kmers) => "GGCTTACCA"))
 
+(facts "universal-string"
+       (let [k 5
+             unistring (solve-universal-string k)]
+         (universal-string-path-to-str unistring) => "000010111110110101001110010001100000"))
+
+(facts "string-spelled-by-a-paired-graph"
+       (let [k 4
+             d 2
+             read-pairs (parse-read-pairs "GTGG|GTGA
+                                           TGGT|TGAG
+                                           GGTC|GAGA
+                                           GTCG|AGAT
+                                           TCGT|GATG
+                                           CGTG|ATGT
+                                           GTGA|TGTT
+                                           TGAG|GTTG
+                                           GAGA|TTGA")
+             ans "GTGGTCGTGAGATGTTGA"]
+         (string-spelled-by-a-paired-path k d read-pairs) => ans))
+
+(facts "construct-debruijin-graph and solving paired graphs"
+       (let [k 4
+             d 2
+             read-pairs (parse-read-pairs "GTGG|GTGA
+                                           TGGT|TGAG
+                                           GGTC|GAGA
+                                           GTCG|AGAT
+                                           TCGT|GATG
+                                           CGTG|ATGT
+                                           GTGA|TGTT
+                                           TGAG|GTTG
+                                           GAGA|TTGA")
+             graph (construct-paired-debruijin-graph k d read-pairs)
+             path (solve-eulerian-path graph)]
+         (string-spelled-by-a-paired-path (dec k) (inc d) path) => "GTGGTCGTGAGATGTTGA"))
 
 
+(facts "find-all-contigs-in-debruijin-graph"
+       (let [k 3
+             kmers (clojure.string/split "ATG ATG TGT TGG CAT GGA GAT AGA" #" ")
+             graph (construct-debruijin-graph k kmers)
+             contigs (find-all-contigs-in-debruijin-graph graph)]
+         contigs => [["AG" "GA"] ["GA" "AT"] ["CA" "AT"] ["TG" "GT"] ["TG" "GG" "GA"] ["AT" "TG"] ["AT" "TG"]]
+         (format-contigs-for-graph (dec k) contigs) => '("AGA" "GAT" "CAT" "TGT" "TGGA" "ATG" "ATG"))
+       (let [k 3
+             kmers (composition 3 "TAATGCCATGGGATGTT")
+             graph (construct-debruijin-graph k kmers)
+             contigs (find-all-contigs-in-debruijin-graph graph)]
+         contigs => [["TG" "GG"] ["TG" "GT" "TT"] ["TG" "GC" "CC" "CA" "AT"] ["TA" "AA" "AT"] ["AT" "TG"] ["AT" "TG"] ["AT" "TG"] ["GG" "GG"] ["GG" "GA" "AT"]]
+         (format-contigs-for-graph (dec k) contigs) => '("TGG" "TGTT" "TGCCAT" "TAAT" "ATG" "ATG" "ATG" "GGG" "GGAT")))
