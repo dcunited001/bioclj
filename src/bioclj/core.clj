@@ -105,7 +105,7 @@
   "inspects text, running a fn with all substrings of length k
   f takes 3 params [hash index substring]"
   [f k text]
-      (persistent!
+  (persistent!
     (let [idxstop (- (count text) k)]
       (reduce
         #(let [kmer (subs text %2 (+ %2 k))]
@@ -227,6 +227,42 @@
            (let [kmer-str (apply str (acgt-64b-to-str k kmer-64b))]
              (assoc h kmer-str kmer-indices)))
          {})))
+
+(defn kmer-64b-frequency-with-near-misses-and-reversals
+  [k d text]
+  (let [normal-matches
+        (kmer-op-64-with-near-misses
+          (fn [h i kmer-64b]
+            (merge-with + h
+                        (r/fold
+                          (fn combinef
+                            ([] {})
+                            ([x y] (merge-with + x y)))
+                          (fn fold-neighbor-freqs [nh n] (assoc nh n 1))
+                          (:b64 (neighborhood-acgt-64b k d kmer-64b)))))
+          + k d text)
+        reverse-matches
+        (kmer-op-64-with-near-misses
+          (fn [h i kmer-64b]
+            (merge-with + h
+                        (r/fold
+                          (fn combinef
+                            ([] {})
+                            ([x y] (merge-with + x y)))
+                          (fn fold-neighbor-freqs [nh n] (assoc nh n 1))
+                          (map (partial complement-64b k) (:b64 (neighborhood-acgt-64b k d kmer-64b))))))
+          + k d (apply str (reverse text)))]
+      (merge-with + normal-matches reverse-matches)))
+
+(defn kmer-64b-frequency-with-near-misses-and-reversals-to-str
+  [k d text]
+  (->> (kmer-64b-frequency-with-near-misses-and-reversals k d text)
+       (reduce
+         (fn convert-to-str [h [kmer-64b kmer-count]]
+           (let [kmer-str (apply str (acgt-64b-to-str k kmer-64b))]
+             (assoc h kmer-str kmer-count)))
+         {})
+       (sorted-freq-kmer)))
 
 (defn kmer-frequency
   "returns a hash where keys are kmers and values are frequency.  accepts k and text."
