@@ -150,6 +150,11 @@
                     (format-char-list (neighborhood-recur kmer d)))))
     concat k d text))
 
+(defn all-kmers-for-text [k text]
+  (let [idxstop (- (count text) k)]
+    (map #(subs text %1 (+ %1 k))
+         (range 0 idxstop))))
+
 (defn kmer-frequency
   "returns a hash where keys are kmers and values are frequency.  accepts k and text."
   [k text]
@@ -266,8 +271,7 @@
   (sorted-freq-kmer
     (reduce #(assoc %1 (first %2) (count (second %2)))
             {}
-            (kmer-hammers k d text))
-    ))
+            (kmer-hammers k d text))))
 
 ;; TODO: find the most frequent k-mers with up to d mismatches and includeing reverse complements...
 ;; TODO: rewrite everything to use r/fold that doesn't mutate state
