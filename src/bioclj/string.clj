@@ -22,16 +22,40 @@
 (def two-multiples (map #(* 2 %1) (range 32)))
 (def acgt-bitshifts (map #(long (maths/expt 2 %1)) two-multiples))
 (def acgt-index-bitmasks (map #(bit-flip (bit-flip 0 %1) (inc %1)) (reverse two-multiples)))
+
+;; 000000000
+;; 110000000
+;; 001100000
+;; 000011000
+;; ....
+
 (def acgt-lbitmasks (reduce #(conj %1 (bit-or (last %1)
                                               (bit-flip (bit-flip 0 %2) (inc %2))))
                             [(bit-flip (bit-flip 0 62) 63)]
                             (reverse (take 31 two-multiples))))
+
+;; 00000000
+;; 00000011
+;; 00001100
+;; 00110000
+;; ....
+
 (def acgt-rbitmasks (reduce #(conj %1 (bit-or (last %1)
                                               (bit-flip (bit-flip 0 %2) (inc %2))))
                             [(bit-flip (bit-flip 0 0) 1)]
                             (nthrest two-multiples 1)))
 
 (defn split-kmers [kmer-str] (clojure.string/split kmer-str #" "))
+
+(defn complement-64b [k kmer]
+  (bit-and (bit-not kmer) (acgt-lbitmasks (dec k))))
+
+;; k=4 0000111100000000 => 0000111100000000
+;; k=4 0101101100000000 => 0010010100000000
+;; k=5 0100110011000000 => 0011001101000000
+
+;; TODO: implement reverse-complement-64b
+;(defn reverse-complement-64b [k kmer])
 
 ;; contains the values acgt, shifted for each index
 (def acgt-64b-shifted-nucleotides

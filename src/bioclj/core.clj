@@ -155,6 +155,79 @@
     (map #(subs text %1 (+ %1 k))
          (range 0 idxstop))))
 
+
+(defn kmer-op-64
+  "kmer-op with 64b integers instead of strings"
+  [f k text]
+
+  (let [idxstop (- (count text) k)]
+    (reduce
+      #(let [kmer (subs text %2 (+ %2 k))
+             kmer-64b (acgt-str-to-64b kmer)]
+        (assoc %1 kmer-64b (f %1 %2 kmer-64b)))
+      (range 0 (inc idxstop)))))
+
+(defn kmer-op-64-with-near-misses
+  ([f foldmergef k d text start]
+   (let [idxstop (- (count text) k)]
+     (r/fold
+       (fn combine-index
+         ([] start)
+         ([x y] (merge-with foldmergef x y)))
+       (fn fold-substrings [h i]
+         (let [kmer (subs text i (+ i k))
+               kmer-64b (acgt-str-to-64b kmer)]
+           (f h i kmer-64b)))
+       (range 0 (inc idxstop)))))
+
+  ([f foldmergef k d text]
+   (kmer-op-64-with-near-misses f foldmergef k d text {})))
+
+(defn kmer-64b-frequency-with-near-misses
+  [k d text]
+  (kmer-op-64-with-near-misses
+    (fn [h i kmer-64b]
+      (merge-with + h
+                  (r/fold
+                    (fn combinef
+                      ([] {})
+                      ([x y] (merge-with + x y)))
+                    (fn fold-neighbor-freqs [nh n] (assoc nh n 1))
+                    (:b64 (neighborhood-acgt-64b k d kmer-64b)))))
+    + k d text))
+
+(defn kmer-64b-frequency-with-near-misses-to-str
+  [k d text]
+  (->> (kmer-64b-frequency-with-near-misses k d text)
+       (reduce
+         (fn convert-to-str [h [kmer-64b kmer-count]]
+           (let [kmer-str (apply str (acgt-64b-to-str k kmer-64b))]
+             (assoc h kmer-str kmer-count)))
+         {})
+       (sorted-freq-kmer)))
+
+(defn kmer-64b-indices-with-near-misses
+  [k d text]
+  (kmer-op-64-with-near-misses
+    (fn [h i kmer-64b]
+      (merge-with concat h
+                  (r/fold
+                    (fn combinef
+                      ([] {})
+                      ([x y] (merge x y)))
+                    (fn fold-neighbor-indices [nh n] (assoc nh n (list i)))
+                    (:b64 (neighborhood-acgt-64b k d kmer-64b)))))
+    concat k d text))
+
+(defn kmer-64b-indices-with-near-misses-to-str
+  [k d text]
+  (->> (kmer-64b-indices-with-near-misses k d text)
+       (reduce
+         (fn convert-to-str [h [kmer-64b kmer-indices]]
+           (let [kmer-str (apply str (acgt-64b-to-str k kmer-64b))]
+             (assoc h kmer-str kmer-indices)))
+         {})))
+
 (defn kmer-frequency
   "returns a hash where keys are kmers and values are frequency.  accepts k and text."
   [k text]
