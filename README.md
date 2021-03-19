@@ -4,6 +4,8 @@ This is going to be a project for helper functions related to my Bioinformatics 
 clj-biosequence lib where it makes sense, but I really want to implement most of the algorithms myself.  Don't
 refer to my project to cheat.
 
+- TODO: neighborhood-64b-masks ⊗ ((popcount ⊗ popcount-to-int-map) ↦ (λ contractable tensor)
+
 ### Bioinformatics News
 
 - [Oxford Bioinformatics Blog](http://www.blopig.com/blog/)
@@ -35,3 +37,4 @@ refer to my project to cheat.
 ### [Other Bio Visualization Tools](http://www.mathtools.net/Visual_Basic/Biotechnology/index.html)
 
 - [List of Molecular Visualization Apps](https://en.wikipedia.org/wiki/List_of_molecular_graphics_systems)
+
